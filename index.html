@@ -1,0 +1,472 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>نظام تقييم أداء التسويق الإلكتروني</title>
+<style>
+:root{--bg:#14141a;--card:#1d1d26;--c2:#262633;--tx:#ecebf3;--mu:#9a98ab;--pu:#8b5cf6;--gd:#f5c542;--gn:#34d399;--bl:#60a5fa;--yl:#fbbf24;--rd:#f87171;--bd:#33334a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:'Segoe UI',Tahoma,Arial,sans-serif;font-size:14px}
+header{background:linear-gradient(135deg,#2e2260,#1d1d26);padding:14px 18px;border-bottom:2px solid var(--gd)}
+h1{margin:0;font-size:20px}h1 small{display:block;color:var(--gd);font-size:12px;font-weight:400}h3{margin:4px 0 10px}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 14px;background:var(--card);border-bottom:1px solid var(--bd)}
+button{font:inherit}nav button,.btn{background:var(--c2);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+nav button.on,.btn.pu,.ch button.on{background:var(--pu);border-color:var(--pu)}.btn.gd{background:var(--gd);color:#222;border-color:var(--gd)}.btn.sm{padding:2px 8px;font-size:12px}
+main{padding:14px;max-width:1200px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}.grid .card{margin:0}
+.kpi b{display:block;font-size:24px;color:var(--gd)}.kpi span{color:var(--mu);font-size:12px}
+.w{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{padding:7px;text-align:right;border-bottom:1px solid var(--bd);vertical-align:top}th{color:var(--mu);font-weight:500;font-size:12px}
+input,select,textarea{background:var(--c2);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:6px;font:inherit;max-width:100%}
+.tag{padding:2px 8px;border-radius:99px;font-size:12px;background:var(--c2);display:inline-block}
+.al{border-right:4px solid var(--rd);background:#2a1b1f;padding:7px 10px;border-radius:8px;margin:5px 0}.al.y{border-color:var(--yl);background:#2a2518}
+.fl{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center}
+.mod{position:fixed;inset:0;background:#000b;overflow:auto;z-index:20;padding:20px 10px}.mod:empty{display:none}.mod>div{background:var(--card);border:1px solid var(--pu);border-radius:14px;padding:16px;width:min(640px,100%);margin:auto}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.f label{display:flex;flex-direction:column;gap:4px;color:var(--mu);font-size:12px}.f .full{grid-column:1/-1}
+.ch{display:flex;gap:4px;flex-wrap:wrap;margin:3px 0}.ch button{background:var(--c2);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:4px 9px;cursor:pointer}
+.bar{height:6px;background:var(--c2);border-radius:4px;min-width:50px}.bar i{display:block;height:100%;background:var(--pu);border-radius:4px}
+a{color:var(--gd);cursor:pointer}.mu{color:var(--mu)}.demo{background:#2a2518;border:1px solid var(--yl);padding:8px 12px;border-radius:10px;margin-bottom:12px}
+#toast{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--pu);padding:8px 16px;border-radius:10px;z-index:30}#toast:empty{display:none}
+.ch.big button{padding:9px 14px}.ch.big button.on{box-shadow:0 0 0 2px var(--gd);font-weight:600}.ch.big button.on::before{content:'✓ '}
+</style><!-- ===== الإعدادات: ضع بيانات مشروع Supabase هنا (انظر README-AR.md) ===== -->
+<script>window.APP_CONFIG={SUPABASE_URL:'https://mhayeiluruotzwadlmvq.supabase.co',SUPABASE_ANON_KEY:'sb_publishable_0yMS5-qpx4coJ9zxlfM-Uw_Eq-i_goK'};</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+</head><body>
+<header><h1>قسم التسويق الإلكتروني<small>Employee Performance Dashboard</small></h1></header>
+<nav id="nav"></nav><main id="app"></main><div class="mod" id="mod"></div><div id="toast"></div>
+<script>
+const R=['مدير التسويق الإلكتروني','المصور (Photographer)','Media Buyer','Online Seller','موظف تغطية الفروع'];
+const TS=['لم تبدأ','قيد التنفيذ','مكتملة','مكتملة جزئيًا','متأخرة','متوقفة','ملغاة'],PRI=['عالية','متوسطة','منخفضة'],PD={عالية:'🔴',متوسطة:'🟡',منخفضة:'🟢'};
+const NS=['مفتوحة','قيد المتابعة','تم الحل','متكررة','تحتاج قرار إداري'],NT=['جودة','تأخير','التزام بالإجراءات','تواصل','أخرى'];
+const REA=['معوق من الشركة','انتظار موافقة','انتظار العميل','انتظار قسم آخر','مشكلة تقنية','نقص موارد','سبب آخر','تقصير الموظف'];
+const KPI={[R[1]]:['سيارات مصوّرة','Before/After','صور Google Maps','محتوى Snapchat','فيديوهات خدمات','Stories','مقابلات عملاء','جودة الصور (1-5)','جودة الفيديو (1-5)','الالتزام بخطة التصوير (1-5)','ملفات مسلّمة'],
+[R[2]]:['حملات مطلقة','حملات محسّنة','مراقبة الميزانية (1-5)','CPL','Leads','Conversion %','جودة العملاء (1-5)','تقارير مسلّمة','مشاكل عولجت','الالتزام بالخطة (1-5)'],
+[R[3]]:['عملاء متابَعون','عملاء مؤهلون','حجوزات','مبيعات','تحديثات CRM','إغلاق %','زمن الرد (دقيقة)','الالتزام بالرسائل (1-5)'],
+[R[4]]:['تغطيات','فروع مغطاة','جودة المحتوى (1-5)','مواد مرسلة في الموعد','تنوع المحتوى (1-5)','الالتزام بالتوجيهات (1-5)']};
+const avgK=k=>/%|CPL|\(1-5\)|زمن/.test(k);
+const L={date:'التاريخ',emp:'الموظف',title:'المهمة',desc:'الوصف',pri:'الأولوية',due:'الموعد',status:'الحالة',pct:'الإنجاز',quality:'الجودة',empNote:'ملاحظة الموظف',block:'المعوقات',mgrNote:'ملاحظة المدير',action:'الإجراء',follow:'تاريخ المتابعة',fstatus:'حالة المتابعة',reason:'سبب عدم الإنجاز',owner:'المسؤول',imp:'الأهمية',type:'النوع'};
+const iso=d=>{const x=new Date(d.getTime()-d.getTimezoneOffset()*6e4);return x.toISOString().slice(0,10)};
+const addD=(s,n)=>{const d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return iso(d)};
+const today=iso(new Date());
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const KEY='mkt_perf_v1';let FULL,S,ME=null,V='dash',CUR='',M={},armed='',F={date:'',emp:'',role:'',status:'',pri:'',q:'',ns:''},DD=today;
+function demo(){let seed=7;const rnd=()=>(seed=(seed*9301+49297)%233280)/233280;
+const emps=[['e1','أحمد',R[1]],['e2','محمد',R[2]],['e3','خالد',R[3]],['e4','سامي',R[4]]].map(([id,name,role])=>({id,name,role,start:addD(today,-30)}));
+const T={e1:['تصوير سيارات الصباح','Before/After لخدمة التلميع','فيديو خدمة جديدة'],e2:['مراجعة الحملات','تحسين الإعلانات','تقرير الميزانية'],e3:['متابعة العملاء','تحديث CRM','الرد على الاستفسارات'],e4:['تغطية فرع','إرسال مواد التغطية','محتوى فرع']};
+const tasks=[],rat={},kp={};let n=0;
+for(let d=6;d>=0;d--){const date=addD(today,-d);emps.forEach(e=>{
+for(let k=0;k<2;k++){const x=rnd();let status,pct,q=0,reason='';
+if(d==0){if(k==0){if(x<.5){status='مكتملة';pct=100;q=4}else{status='قيد التنفيذ';pct=60}}else{status='لم تبدأ';pct=0}}
+else if(x<.65){status='مكتملة';pct=100;q=3+Math.round(rnd()*2)}else if(x<.85){status='مكتملة جزئيًا';pct=60;q=3}else{status='متأخرة';pct=20;reason=['انتظار موافقة','تقصير الموظف','مشكلة تقنية'][Math.floor(rnd()*3)]}
+tasks.push({id:'t'+(n++),date,emp:e.id,title:T[e.id][(k+d)%3],desc:'',pri:PRI[Math.floor(rnd()*3)],due:date,status,pct,quality:q,empNote:'',block:'',mgrNote:'',action:'',follow:'',fstatus:'لا يوجد',reason})}
+rat[date+'|'+e.id]={time:3+Math.round(rnd()*2),proc:3+Math.round(rnd()*2),init:3+Math.round(rnd()*2)};
+const o={};(KPI[e.role]||[]).forEach(k=>o[k]=/\(1-5\)/.test(k)?3+Math.round(rnd()*2):Math.round(rnd()*10));kp[date+'|'+e.id]=o})}
+const notes=[{id:'n1',emp:'e1',date:addD(today,-5),type:'جودة',desc:'إضاءة غير كافية في بعض اللقطات',imp:'متوسطة',action:'مراجعة إعدادات الإضاءة',owner:'المدير',follow:addD(today,-2),status:'مفتوحة'},
+{id:'n2',emp:'e1',date:addD(today,-2),type:'جودة',desc:'تكرار نفس مشكلة الإضاءة',imp:'عالية',action:'جلسة تدريب قصيرة',owner:'المدير',follow:today,status:'متكررة'},
+{id:'n3',emp:'e3',date:addD(today,-3),type:'تأخير',desc:'تأخر في تحديث CRM',imp:'متوسطة',action:'تحديث يومي قبل الإغلاق',owner:'خالد',follow:addD(today,2),status:'قيد المتابعة'},
+{id:'n4',emp:'e2',date:addD(today,-4),type:'التزام بالإجراءات',desc:'تقرير الميزانية بدون صيغة موحدة',imp:'منخفضة',action:'اعتماد قالب موحد',owner:'محمد',follow:addD(today,-1),status:'تم الحل'}];
+return{demo:1,emps,tasks,notes,rat,kp,log:[{t:new Date().toISOString(),txt:'تحميل البيانات التجريبية'}]}}
+try{FULL=JSON.parse(localStorage.getItem(KEY))}catch(e){}if(!FULL||!FULL.emps)FULL=demo();S=FULL;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(FULL))}catch(e){}}
+function log(txt){FULL.log.unshift({t:new Date().toISOString(),by:ME?ME.name:'النظام',txt});FULL.log=FULL.log.slice(0,200)}
+function toast(m){const t=$('#toast');t.textContent=m;setTimeout(()=>t.textContent='',2200)}
+const emp=id=>S.emps.find(x=>x.id==id),nm=id=>emp(id)?emp(id).name:'—';
+const ext=t=>t.status!='مكتملة'&&(t.status=='ملغاة'||(t.reason&&t.reason!='تقصير الموظف'));
+const isLate=t=>t.status!='مكتملة'&&t.status!='ملغاة'&&(t.status=='متأخرة'||(t.due&&t.due<today));
+const nLate=n=>n.status!='تم الحل'&&n.follow&&n.follow<today;
+const rng=(end,n)=>[...Array(n)].map((_,i)=>addD(end,-(n-1-i)));
+function dayScore(id,date){const ts=S.tasks.filter(t=>t.emp==id&&t.date==date);if(!ts.length)return null;
+const ct=ts.filter(t=>!ext(t)),comp=ct.length?ct.reduce((a,t)=>a+t.pct,0)/ct.length:100,qs=ts.filter(t=>t.quality),q=qs.length?qs.reduce((a,t)=>a+t.quality,0)/qs.length:3,r=S.rat[date+'|'+id]||{};
+return Math.round(comp*.4+q/5*25+(r.time||3)/5*15+(r.proc||3)/5*10+(r.init||3)/5*10)}
+function avgS(id,ds){const v=ds.map(d=>dayScore(id,d)).filter(x=>x!=null);return v.length?Math.round(v.reduce((a,b)=>a+b)/v.length):null}
+function stat(id,ds){const ts=S.tasks.filter(t=>t.emp==id&&ds.includes(t.date)),ct=ts.filter(t=>!ext(t));
+return{n:ts.length,done:ts.filter(t=>t.status=='مكتملة').length,late:ts.filter(t=>isLate(t)&&!ext(t)).length,ext:ts.filter(ext).length,comp:ct.length?Math.round(ct.reduce((a,t)=>a+t.pct,0)/ct.length):null,score:avgS(id,ds),
+notes:S.notes.filter(n=>n.emp==id&&ds.includes(n.date)).length,open:S.notes.filter(n=>n.emp==id&&n.status!='تم الحل').length,rep:repN(id)}}
+function repN(id){const c={};S.notes.filter(n=>n.emp==id).forEach(n=>c[n.type]=(c[n.type]||0)+1);return Object.values(c).filter(v=>v>1).length+S.notes.filter(n=>n.emp==id&&n.status=='متكررة'&&c[n.type]<2).length}
+const lvl=s=>s==null?['⚪','لا بيانات']:s>=85?['🟢','ممتاز']:s>=70?['🔵','جيد جدًا']:s>=55?['🟡','يحتاج متابعة']:['🔴','يحتاج تدخل'];
+const bd=s=>{const l=lvl(s);return`<span class="tag">${l[0]} ${l[1]}</span>`};
+const v=x=>x==null?'—':x,pc=x=>x==null?'—':x+'%';
+const op=(a,val,ph)=>(ph!==undefined?`<option value="">${ph}</option>`:'')+a.map(x=>{const[k,l]=Array.isArray(x)?x:[x,x];return`<option value="${esc(k)}"${k==val?' selected':''}>${esc(l)}</option>`}).join('');
+const EO=()=>S.emps.map(e=>[e.id,e.name+' – '+e.role]);
+const PAL=['#8b5cf6','#f5c542','#34d399','#60a5fa','#f87171','#f472b6'];
+function chart(ser,labels){const W=600,H=200,p=28,x=i=>p+i*(W-2*p)/Math.max(1,labels.length-1),y=v=>H-p-v*(H-2*p)/100;
+let s=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" direction="ltr">`;
+[0,50,100].forEach(g=>s+=`<line x1="${p}" x2="${W-p}" y1="${y(g)}" y2="${y(g)}" stroke="#33334a"/><text x="2" y="${y(g)+4}" fill="#9a98ab" font-size="10">${g}</text>`);
+labels.forEach((l,i)=>{if(labels.length<=10||i%3==0)s+=`<text x="${x(i)}" y="${H-8}" fill="#9a98ab" font-size="9" text-anchor="middle">${l.slice(5)}</text>`});
+ser.forEach(a=>{let d='',pen=0;a.data.forEach((val,i)=>{if(val==null){pen=0;return}d+=(pen?'L':'M')+x(i)+' '+y(val);pen=1});s+=`<path d="${d}" fill="none" stroke="${a.c}" stroke-width="2"/>`;a.data.forEach((val,i)=>{if(val!=null)s+=`<circle cx="${x(i)}" cy="${y(val)}" r="3" fill="${a.c}"/>`})});
+return s+'</svg><div class="ch">'+ser.map(a=>`<span class="tag" style="color:${a.c}">● ${esc(a.n)}</span>`).join('')+'</div>'}
+function alerts(){const A=[];
+S.tasks.filter(t=>isLate(t)&&!ext(t)).slice(0,6).forEach(t=>A.push(['','⏰ مهمة متأخرة: '+t.title+' ('+nm(t.emp)+')']));
+S.notes.filter(nLate).forEach(n=>A.push(['','🔔 ملاحظة متأخرة: '+n.desc+' ('+nm(n.emp)+')']));
+S.notes.filter(n=>n.follow==today&&n.status!='تم الحل').forEach(n=>A.push(['y','📅 متابعة مستحقة اليوم: '+n.action+' ('+nm(n.emp)+')']));
+S.tasks.filter(t=>t.follow==today&&t.fstatus=='مطلوبة').forEach(t=>A.push(['y','📅 متابعة مهمة اليوم: '+t.title]));
+S.emps.forEach(e=>{if(repN(e.id))A.push(['y','🔁 تكرار ملاحظات: '+e.name]);const s=avgS(e.id,rng(today,7));if(s!=null&&s<55)A.push(['','📉 انخفاض أداء: '+e.name+' ('+s+')'])});
+S.tasks.filter(t=>t.pri=='عالية'&&t.status!='مكتملة'&&t.status!='ملغاة'&&t.date==today).forEach(t=>A.push(['','🔴 مهمة عالية الأولوية لم تنجز: '+t.title+' ('+nm(t.emp)+')']));return A}
+const alHtml=()=>{const A=alerts();return A.length?A.map(a=>`<div class="al ${a[0]}">${esc(a[1])}</div>`).join(''):'<div class="mu">لا توجد تنبيهات</div>'};
+const kpi=(l,val)=>`<div class="card kpi"><b>${val}</b><span>${l}</span></div>`;
+const noteRow=n=>`<tr><td>${nm(n.emp)}</td><td>${n.date}</td><td>${n.type}</td><td>${esc(n.desc)}</td><td>${PD[n.imp]||''} ${n.imp}</td><td>${esc(n.action)}</td><td>${esc(n.owner)}</td><td>${n.follow}${nLate(n)?' <span class="tag" style="color:var(--rd)">متأخرة</span>':''}</td><td>${n.status}</td><td><button class="btn sm" onclick="openNote('${n.id}')">✎</button> ${n.status!='تم الحل'?`<button class="btn sm" onclick="solve('${n.id}')">✔</button>`:''}</td></tr>`;
+const noteTbl=a=>a.length?`<div class="w"><table><tr><th>الموظف</th><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>الأهمية</th><th>الإجراء</th><th>المسؤول</th><th>المتابعة</th><th>الحالة</th><th></th></tr>${a.map(noteRow).join('')}</table></div>`:'<div class="mu">لا توجد ملاحظات</div>';
+const taskRow=t=>`<tr><td>${t.date}</td><td><a onclick="go('prof','${t.emp}')">${nm(t.emp)}</a></td><td>${esc(t.title)}${t.branch?`<div class="mu">${t.branch} · ${esc(tyStr(t))}${t.t1?' · '+t.t1+(t.t2?'–'+t.t2:''):''}</div>`:''}</td><td>${PD[t.pri]} ${t.pri}</td><td>${t.due||''}</td><td>${t.status}${isLate(t)?' ⏰':''}</td><td><div class="bar"><i style="width:${t.pct}%"></i></div>${t.pct}%</td><td>${t.quality||'—'}</td><td class="mu">${ext(t)?'🔧 '+(t.reason||'ملغاة'):t.reason?'⚠ '+t.reason:''}</td><td><button class="btn sm" onclick="openTask('${t.id}')">✎</button> ${t.status!='مكتملة'?`<button class="btn sm" onclick="doneT('${t.id}')">✔</button>`:''}</td></tr>`;
+const taskTbl=a=>a.length?`<div class="w"><table><tr><th>التاريخ</th><th>الموظف</th><th>المهمة</th><th>الأولوية</th><th>الموعد</th><th>الحالة</th><th>الإنجاز</th><th>الجودة</th><th>السبب</th><th></th></tr>${a.map(taskRow).join('')}</table></div>`:'<div class="mu">لا توجد مهام</div>';
+const demoBar=()=>S.demo?`<div class="demo">⚠ البيانات الحالية <b>تجريبية</b> ويمكن حذفها. <button class="btn sm" onclick="clearAll()">حذف البيانات التجريبية</button></div>`:'';
+const VW={};
+VW.dash=()=>{const ts=S.tasks.filter(t=>t.date==today),ct=ts.filter(t=>!ext(t)),sc=S.emps.map(e=>dayScore(e.id,today)).filter(x=>x!=null);
+const rows=S.emps.map(e=>{const s=stat(e.id,[today]);return`<tr><td><a onclick="go('prof','${e.id}')">${esc(e.name)}</a></td><td>${esc(e.role)}</td><td>${pc(s.comp)}</td><td>${v(s.score)}</td><td>${s.late}</td><td>${s.open}</td><td>${bd(s.score)}</td></tr>`}).join('');
+return demoBar()+`<div class="fl"><button class="btn pu" onclick="go('daily')">أداء اليوم</button><button class="btn" onclick="go('tasks')">المهام</button><button class="btn" onclick="go('notes')">الملاحظات</button><button class="btn" onclick="go('follow')">المتابعة</button><button class="btn gd" onclick="openTask()">+ مهمة</button></div>
+<div class="grid">${kpi('إجمالي الموظفين',S.emps.length)}${kpi('مهام اليوم',ts.length)}${kpi('مكتملة',ts.filter(t=>t.status=='مكتملة').length)}${kpi('جزئية',ts.filter(t=>t.status=='مكتملة جزئيًا').length)}${kpi('متأخرة',S.tasks.filter(t=>isLate(t)&&!ext(t)).length)}${kpi('إنجاز الفريق',pc(ct.length?Math.round(ct.reduce((a,t)=>a+t.pct,0)/ct.length):null))}${kpi('متوسط التقييم',sc.length?Math.round(sc.reduce((a,b)=>a+b)/sc.length):'—')}${kpi('ملاحظات مفتوحة',S.notes.filter(n=>n.status!='تم الحل').length)}</div>
+<div class="card"><h3>🔔 التنبيهات</h3>${alHtml()}</div>
+<div class="card"><h3>أداء الفريق اليوم</h3><div class="w"><table><tr><th>الموظف</th><th>الوظيفة</th><th>الإنجاز</th><th>التقييم</th><th>المتأخر</th><th>الملاحظات</th><th>الحالة</th></tr>${rows||'<tr><td colspan=7 class="mu">أضف موظفين</td></tr>'}</table></div></div>
+<div class="card"><h3>المهام التي تحتاج متابعة</h3>${taskTbl(S.tasks.filter(t=>t.status!='مكتملة'&&t.status!='ملغاة'&&(isLate(t)||t.date==today)).slice(-8))}</div>
+<div class="card"><h3>الملاحظات المفتوحة</h3>${noteTbl(S.notes.filter(n=>n.status!='تم الحل').slice(0,6))}</div>
+<div class="card"><h3>آخر الأنشطة</h3>${S.log.slice(0,6).map(l=>`<div class="mu">${l.t.slice(0,16).replace('T',' ')} — ${esc(l.txt)}</div>`).join('')}</div>`};
+VW.daily=()=>{const ds=[DD],cards=S.emps.map(e=>{const ts=S.tasks.filter(t=>t.emp==e.id&&t.date==DD),r=S.rat[DD+'|'+e.id]||{},k=(S.kp[DD+'|'+e.id])||{},s=stat(e.id,ds);
+const sl=(f,l)=>`<label>${l}: <b>${r[f]||3}</b><input type="range" min="1" max="5" value="${r[f]||3}" onchange="setR('${e.id}','${f}',this.value)"></label>`;
+return`<div class="card"><div class="fl"><h3 style="margin:0"><a onclick="go('prof','${e.id}')">${esc(e.name)}</a> <span class="mu">${esc(e.role)}</span></h3><span>${bd(s.score)} التقييم: <b>${v(s.score)}</b></span><span>الإنجاز: ${pc(s.comp)}</span><span>متأخر: ${s.late}</span><span>معوقات/ملغاة: ${s.ext}</span><button class="btn sm gd" onclick="openTask(null,{emp:'${e.id}',date:'${DD}'})">+ مهمة</button></div>
+${ts.length?taskTbl(ts):'<div class="mu">لا توجد بيانات لهذا اليوم</div>'}
+<div class="fl" style="margin-top:8px">${sl('time','الالتزام بالوقت')}${sl('proc','الالتزام بالإجراءات')}${sl('init','المبادرة والتعاون')}</div>
+${(KPI[e.role]||[]).length?`<details><summary>مؤشرات الوظيفة</summary><div class="f">${KPI[e.role].map(n=>`<label>${n}<input type="number" step="any" value="${k[n]??''}" onchange="setK('${e.id}','${n.replace(/'/g,'')}',this.value)"></label>`).join('')}</div>${e.role==R[2]?'<div class="mu">نجاح الحملة يُقاس بعدة مؤشرات وليس Leads فقط.</div>':''}</details>`:''}</div>`}).join('');
+const all=S.tasks.filter(t=>t.date==DD),ct=all.filter(t=>!ext(t)),c=ct.length?Math.round(ct.reduce((a,t)=>a+t.pct,0)/ct.length):null,l=all.filter(t=>isLate(t)&&!ext(t)).length,ex=all.filter(ext).length,o=S.notes.filter(n=>n.status!='تم الحل').length,need=S.emps.filter(e=>{const s=stat(e.id,[DD]);return s.n&&(s.late>0||(s.score!=null&&s.score<70))}).length;
+const sum=all.length?`تم إنجاز ${c}% من مهام اليوم. توجد ${l} مهام متأخرة و${o} ملاحظة مفتوحة. ${need?`يحتاج ${need} موظف إلى متابعة.`:'لا يوجد موظف يحتاج متابعة.'}${ex?` (${ex} مهام تعثرت بمعوقات خارجية ولا تُحتسب تقصيرًا.)`:''}`:'لا توجد بيانات لهذا اليوم.';
+return`<div class="fl"><h3 style="margin:0">التقرير اليومي</h3><input type="date" value="${DD}" onchange="DD=this.value;render()"><button class="btn sm" onclick="DD=addD(DD,-1);render()">اليوم السابق</button><button class="btn sm" onclick="DD=today;render()">اليوم</button></div>${cards}<div class="card" style="border-color:var(--gd)"><h3>ملخص المدير</h3>${sum}</div>`};
+VW.tasks=()=>{let a=S.tasks.filter(t=>(!F.date||t.date==F.date)&&(!F.emp||t.emp==F.emp)&&(!F.role||(emp(t.emp)||{}).role==F.role)&&(!F.status||t.status==F.status)&&(!F.pri||t.pri==F.pri)&&(!F.branch||t.branch==F.branch)&&(!F.type||(t.types||[]).includes(F.type))&&(!F.q||(t.title+nm(t.emp)).includes(F.q)));
+return`<div class="fl"><h3 style="margin:0">المهام</h3><button class="btn gd" onclick="openTask()">+ إضافة مهمة</button></div><div class="fl"><input type="date" value="${F.date}" onchange="setF('date',this.value)"><select onchange="setF('emp',this.value)">${op(EO(),F.emp,'كل الموظفين')}</select><select onchange="setF('role',this.value)">${op([...new Set(S.emps.map(e=>e.role))],F.role,'كل الوظائف')}</select><select onchange="setF('status',this.value)">${op(TS,F.status,'كل الحالات')}</select><select onchange="setF('pri',this.value)">${op(PRI,F.pri,'كل الأولويات')}</select><select onchange="setF('branch',this.value)">${op(BR,F.branch,'كل الفروع')}</select><select onchange="setF('type',this.value)">${op(TY,F.type,'كل الأنواع')}</select><input placeholder="بحث..." value="${esc(F.q)}" onchange="setF('q',this.value)"><button class="btn sm" onclick="F={date:'',emp:'',role:'',status:'',pri:'',q:'',ns:''};render()">مسح</button></div><div class="card">${taskTbl(a.slice().reverse())}</div>`};
+VW.notes=()=>{const a=S.notes.filter(n=>(!F.emp||n.emp==F.emp)&&(!F.ns||n.status==F.ns)&&(!F.q||(n.desc+n.action).includes(F.q)));
+return`<div class="fl"><h3 style="margin:0">الملاحظات</h3><button class="btn gd" onclick="openNote()">+ ملاحظة</button><select onchange="setF('emp',this.value)">${op(EO(),F.emp,'كل الموظفين')}</select><select onchange="setF('ns',this.value)">${op(NS,F.ns,'كل الحالات')}</select><input placeholder="بحث..." value="${esc(F.q)}" onchange="setF('q',this.value)"></div>${S.notes.some(nLate)?'<div class="al">🔔 توجد ملاحظات متأخرة لم تُغلق</div>':''}<div class="card">${noteTbl(a.slice().reverse())}</div>`};
+VW.follow=()=>`<h3>المتابعة</h3><div class="card"><h3>ملاحظات متأخرة</h3>${noteTbl(S.notes.filter(nLate))}</div><div class="card"><h3>متابعات مستحقة اليوم</h3>${noteTbl(S.notes.filter(n=>n.follow==today&&n.status!='تم الحل'))}${taskTbl(S.tasks.filter(t=>t.follow==today&&t.fstatus=='مطلوبة'))}</div><div class="card"><h3>مهام متأخرة</h3>${taskTbl(S.tasks.filter(t=>isLate(t)&&!ext(t)))}</div><div class="card"><h3>معوقات خارجية / ملغاة (غير محسوبة تقصيرًا)</h3>${taskTbl(S.tasks.filter(ext))}</div>`;
+function repTable(ds,pv){return`<div class="w"><table><tr><th>الموظف</th><th>متوسط التقييم</th><th>المهام</th><th>الإنجاز</th><th>متأخرة</th><th>معوقات خارجية / ملغاة</th><th>ملاحظات</th><th>متكررة</th><th>${pv?'التطور':'بداية → نهاية'}</th></tr>${S.emps.map(e=>{const s=stat(e.id,ds);let tr;if(pv){const p=avgS(e.id,pv);tr=s.score==null||p==null?'—':(s.score>p?'🔼 +':s.score<p?'🔽 ':'⏺ ')+(s.score-p)}else{const a=avgS(e.id,ds.slice(0,7)),b=avgS(e.id,ds.slice(-7));tr=v(a)+' → '+v(b)}
+return`<tr><td><a onclick="go('prof','${e.id}')">${esc(e.name)}</a></td><td>${v(s.score)}</td><td>${s.n}</td><td>${pc(s.comp)}</td><td>${s.late}</td><td>${s.ext}</td><td>${s.notes}</td><td>${s.rep}</td><td>${tr}</td></tr>`}).join('')}</table></div>`}
+const trend=ds=>chart(S.emps.map((e,i)=>({n:e.name,c:PAL[i%6],data:ds.map(d=>dayScore(e.id,d))})),ds);
+VW.week=()=>{const ds=rng(today,7);return`<h3>التقرير الأسبوعي</h3><div class="card">${repTable(ds,rng(addD(today,-7),7))}</div><div class="card"><h3>تطور الأداء</h3>${trend(ds)}</div>`};
+VW.month=()=>{const ds=rng(today,30),roles=[...new Set(S.emps.map(e=>e.role))].filter(r=>KPI[r]);
+const kp=roles.map(r=>{const es=S.emps.filter(e=>e.role==r);return`<div class="card"><h3>${esc(r)}</h3><div class="w"><table><tr><th>المؤشر</th>${es.map(e=>`<th>${esc(e.name)}</th>`).join('')}</tr>${KPI[r].map(k=>`<tr><td>${k}</td>${es.map(e=>{const a=ds.map(d=>(S.kp[d+'|'+e.id]||{})[k]).filter(x=>x!==''&&x!=null);return`<td>${a.length?(avgK(k)?(a.reduce((x,y)=>x+ +y,0)/a.length).toFixed(1):a.reduce((x,y)=>x+ +y,0)):'—'}</td>`}).join('')}</tr>`).join('')}</table></div><div class="mu">المجموع للمؤشرات العددية، والمتوسط للنسب والتقييمات.</div></div>`}).join('');
+return`<h3>التقرير الشهري (آخر 30 يومًا)</h3><div class="mu">عرض فردي للأداء والتطور دون ترتيب تنافسي.</div><div class="card">${repTable(ds)}</div><div class="card"><h3>تطور الأداء</h3>${trend(ds)}</div>${kp}`};
+VW.prof=()=>{const e=emp(CUR);if(!e)return'<div class="mu">اختر موظفًا</div>';const w=stat(e.id,rng(today,7)),m=stat(e.id,rng(today,30)),t=stat(e.id,[today]);
+const ns=S.notes.filter(n=>n.emp==e.id);
+return`<div class="fl"><button class="btn sm" onclick="go('emps')">← الموظفون</button><h3 style="margin:0">${esc(e.name)} <span class="mu">${esc(e.role)}</span></h3><span class="mu">بدء المتابعة: ${e.start}</span></div>
+<div class="grid">${kpi('تقييم اليوم',v(t.score))}${kpi('متوسط الأسبوع',v(w.score))}${kpi('متوسط الشهر',v(m.score))}${kpi('إنجاز الشهر',pc(m.comp))}</div>
+<div class="card"><h3>Performance Trend</h3>${chart([{n:e.name,c:'#8b5cf6',data:rng(today,14).map(d=>dayScore(e.id,d))}],rng(today,14))}</div>
+<div class="card"><h3>المهام</h3>${taskTbl(S.tasks.filter(x=>x.emp==e.id).reverse())}</div><div class="card"><h3>الملاحظات والإجراءات</h3>${noteTbl(ns)}<div class="mu">مفتوحة: ${ns.filter(n=>n.status!='تم الحل').length} — مغلقة: ${ns.filter(n=>n.status=='تم الحل').length}</div></div>`};
+VW.emps=()=>`<div class="fl"><h3 style="margin:0">الموظفون</h3><button class="btn gd" onclick="openEmp()">+ موظف</button></div><div class="card"><div class="w"><table><tr><th>الاسم</th><th>الوظيفة</th><th>بدء المتابعة</th><th></th></tr>${S.emps.map(e=>`<tr><td><a onclick="go('prof','${e.id}')">${esc(e.name)}</a></td><td>${esc(e.role)}</td><td>${e.start}</td><td><button class="btn sm" onclick="openEmp('${e.id}')">✎</button> <button class="btn sm" onclick="del('emp','${e.id}')">🗑</button></td></tr>`).join('')}</table></div></div>
+<div class="card"><h3>حفظ البيانات</h3><div class="mu">البيانات محفوظة الآن في قاعدة مشتركة على خادم المنصة ويراها كل مستخدم حسب صلاحيته. النسخة الاحتياطية أدناه اختيارية، والاستعادة تستبدل بيانات الجميع.</div><textarea id="bk" rows="3" style="width:100%" onfocus="this.value=JSON.stringify(S)"></textarea><button class="btn" onclick="restore()">استعادة</button></div>`;
+VW.log=()=>`<h3>سجل التغييرات</h3><div class="card"><div class="w"><table><tr><th>التاريخ</th><th>بواسطة</th><th>التغيير</th></tr>${S.log.map(l=>`<tr><td>${l.t.slice(0,16).replace('T',' ')}</td><td>${l.by||'النظام'}</td><td>${esc(l.txt)}</td></tr>`).join('')}</table></div></div>`;
+let TABS=[['dash','لوحة التحكم'],['daily','التقرير اليومي'],['tasks','المهام'],['br','مهام الفروع'],['notes','الملاحظات'],['follow','المتابعة'],['week','الأسبوعي'],['month','الشهري'],['emps','الموظفون'],['log','السجل']];
+function render(){$('#nav').innerHTML=TABS.map(t=>`<button class="${t[0]==V?'on':''}" onclick="go('${t[0]}')">${t[1]}</button>`).join('');$('#app').innerHTML=VW[V]()}
+function go(x,id){V=x;if(id)CUR=id;render();scrollTo(0,0)}
+function setF(k,val){F[k]=val;render()}
+function setR(id,f,val){const k=DD+'|'+id;S.rat[k]=S.rat[k]||{};S.rat[k][f]=+val;log(`عدّل تقييم ${nm(id)} (${f}) بتاريخ ${DD}`);save();render()}
+function setK(id,n,val){const k=DD+'|'+id;S.kp[k]=S.kp[k]||{};S.kp[k][n]=val;save()}
+function doneT(id){const t=S.tasks.find(x=>x.id==id);t.status='مكتملة';t.pct=100;t.reason='';log('أغلق مهمة «'+t.title+'»');save();render()}
+function solve(id){const n=S.notes.find(x=>x.id==id);n.status='تم الحل';log('حل ملاحظة: '+n.desc);save();render()}
+function mod(h){$('#mod').innerHTML='<div>'+h+'</div>'}function close_(){$('#mod').innerHTML=''}function fin(){save();close_();render()}
+const chips=(k,a)=>`<div class="ch" data-k="${k}">${a.map(o=>`<button type="button" class="${M[k]==o?'on':''}" onclick="pick('${k}','${o}')">${o}</button>`).join('')}</div>`;
+function pick(k,val){M[k]=val;if(k=='status'&&(val=='مكتملة'||val=='لم تبدأ')){$('#m_pct').value=val=='مكتملة'?100:0;$('#po').textContent=$('#m_pct').value+'%'}
+document.querySelectorAll(`[data-k=${k}] button`).forEach(b=>b.classList.toggle('on',b.textContent==String(val)))}
+const fv=(id,l,val,t,cls)=>`<label class="${cls||''}">${l}<input type="${t||'text'}" id="m_${id}" value="${esc(val)}"></label>`;
+function openTask(id,pre){const t=id&&S.tasks.find(x=>x.id==id);pre=pre||{};M=t?{branch:'',types:[],typeOther:'',t1:'',t2:'',...t,types:[...(t.types||[])]}:{branch:'',types:[],typeOther:'',t1:'',t2:'',id:null,date:pre.date||today,emp:pre.emp||(S.emps[0]||{}).id||'',title:'',desc:'',pri:'متوسطة',due:pre.date||today,status:'لم تبدأ',pct:0,quality:0,empNote:'',block:'',mgrNote:'',action:'',follow:'',fstatus:'لا يوجد',reason:''};
+mod(`<h3>${t?'تعديل':'إضافة'} مهمة</h3><div class="f">${fv('date','التاريخ',M.date,'date')}<label>الموظف<select id="m_emp" onchange="empChg()">${op(EO(),M.emp)}</select></label><label class="full" id="ttl">المهمة<input id="m_title" value="${esc(M.title)}"></label>${btHtml()}${fv('desc','وصف المهمة / ملاحظات',M.desc,'text','full')}${fv('due','الموعد المطلوب',M.due,'date')}
+<label>الأولوية${chips('pri',PRI)}</label><label class="full">الحالة${chips('status',TS)}</label><label class="full">نسبة الإنجاز: <output id="po">${M.pct}%</output><input type="range" id="m_pct" min="0" max="100" step="5" value="${M.pct}" oninput="$('#po').textContent=this.value+'%'"></label>
+<label class="full">جودة التنفيذ${chips('quality',[1,2,3,4,5])}</label><label class="full">سبب عدم الإنجاز<select id="m_reason">${op(REA,M.reason,'— لا يوجد —')}</select></label>${fv('empNote','ملاحظة الموظف',M.empNote)}${fv('block','المعوقات',M.block)}${fv('mgrNote','ملاحظة المدير',M.mgrNote)}${fv('action','الإجراء المطلوب',M.action)}${fv('follow','تاريخ المتابعة',M.follow,'date')}<label>حالة المتابعة<select id="m_fstatus">${op(['لا يوجد','مطلوبة','تمت'],M.fstatus)}</select></label></div>
+<div class="fl" style="margin-top:12px"><button class="btn gd" onclick="saveTask()">حفظ</button><button class="btn" onclick="close_()">إلغاء</button></div>`)}
+function saveTask(){['date','emp','title','desc','due','empNote','block','mgrNote','action','follow','fstatus','reason'].forEach(k=>M[k]=$('#m_'+k).value);M.pct=+$('#m_pct').value;M.quality=+M.quality||0;if(!M.title||!M.emp)return toast('أدخل الموظف والمهمة');
+if(M.status=='مكتملة')M.reason='';
+if(M.id){const o=S.tasks.find(x=>x.id==M.id),ch=Object.keys(M).filter(k=>JSON.stringify(o[k])!=JSON.stringify(M[k])).map(k=>L[k]||k).join('، ');Object.assign(o,M);log(`عدّل مهمة «${M.title}» (${ch||'بدون تغيير'})`)}else{M.id='t'+Date.now();S.tasks.push({...M});log(`أضاف مهمة «${M.title}» للموظف ${nm(M.emp)}`)}fin()}
+function openNote(id){const n=id&&S.notes.find(x=>x.id==id);M=n?{...n}:{id:null,emp:(S.emps[0]||{}).id||'',date:today,type:NT[0],desc:'',imp:'متوسطة',action:'',owner:'المدير',follow:addD(today,3),status:'مفتوحة'};
+mod(`<h3>${n?'تعديل':'إضافة'} ملاحظة</h3><div class="f"><label>الموظف<select id="m_emp">${op(EO(),M.emp)}</select></label>${fv('date','التاريخ',M.date,'date')}<label>النوع<select id="m_type">${op(NT,M.type)}</select></label>${fv('desc','وصف الملاحظة',M.desc,'text','full')}<label>الأهمية${chips('imp',PRI)}</label>${fv('action','الإجراء المطلوب *',M.action,'text','full')}${fv('owner','المسؤول *',M.owner)}${fv('follow','تاريخ المتابعة *',M.follow,'date')}<label class="full">الحالة${chips('status',NS)}</label></div><div class="mu">كل ملاحظة تحتاج: إجراء + مسؤول + تاريخ متابعة.</div>
+<div class="fl" style="margin-top:12px"><button class="btn gd" onclick="saveNote()">حفظ</button><button class="btn" onclick="close_()">إلغاء</button></div>`)}
+function saveNote(){['emp','date','type','desc','action','owner','follow'].forEach(k=>M[k]=$('#m_'+k).value);if(!M.desc||!M.action||!M.owner||!M.follow)return toast('الوصف والإجراء والمسؤول وتاريخ المتابعة مطلوبة');
+if(M.id){const o=S.notes.find(x=>x.id==M.id),ch=Object.keys(M).filter(k=>JSON.stringify(o[k])!=JSON.stringify(M[k])).map(k=>L[k]||k).join('، ');Object.assign(o,M);log(`عدّل ملاحظة (${ch||'بدون تغيير'})`)}else{M.id='n'+Date.now();S.notes.push({...M});log('أضاف ملاحظة على '+nm(M.emp))}fin()}
+function openEmp(id){const e=id&&emp(id);M=e?{...e}:{id:null,name:'',role:R[1],start:today};
+mod(`<h3>${e?'تعديل':'إضافة'} موظف</h3><div class="f">${fv('name','الاسم',M.name)}<label>الوظيفة<input id="m_role" list="rl" value="${esc(M.role)}"><datalist id="rl">${R.map(r=>`<option value="${r}">`).join('')}</datalist></label>${fv('start','تاريخ بدء المتابعة',M.start,'date')}<label>تفعيل نموذج الفرع / نوع المهمة<input type="checkbox" id="m_bt" ${M.bt?'checked':''}></label><label>تفعيل قسم العملاء (البائع الأونلاين)<input type="checkbox" id="m_crm" ${M.crm?'checked':''}></label></div><div class="fl" style="margin-top:12px"><button class="btn gd" onclick="saveEmp()">حفظ</button><button class="btn" onclick="close_()">إلغاء</button></div>`)}
+function saveEmp(){['name','role','start'].forEach(k=>M[k]=$('#m_'+k).value);M.bt=$('#m_bt').checked;M.crm=$('#m_crm').checked;if(!M.name)return toast('أدخل الاسم');
+if(M.id){Object.assign(emp(M.id),M);log('عدّل موظفًا: '+M.name)}else{M.id='e'+Date.now();S.emps.push({...M});log('أضاف موظفًا: '+M.name)}fin()}
+function del(k,id){if(armed!=k+id){armed=k+id;return toast('اضغط مرة أخرى لتأكيد الحذف')}armed='';const e=emp(id);S.emps=S.emps.filter(x=>x.id!=id);S.tasks=S.tasks.filter(t=>t.emp!=id);S.notes=S.notes.filter(n=>n.emp!=id);log('حذف الموظف '+e.name);save();render()}
+function clearAll(){if(armed!='all'){armed='all';return toast('اضغط مرة أخرى لحذف كل البيانات التجريبية')}armed='';FULL={emps:[],tasks:[],notes:[],rat:{},kp:{},log:[],users:FULL.users,clients:[],mig10:1,migPerms:1,migBT:1,migCRM:1};S=FULL;log('حذف البيانات التجريبية');save();render()}
+function restore(){try{const d=JSON.parse($('#bk').value);if(!d.emps)throw 0;if(!d.users)d.users=FULL.users;FULL=d;S=FULL;save();render();toast('تمت الاستعادة')}catch(e){toast('نص غير صالح')}}
+/* ===== Auth & Roles (client-side PROTOTYPE – not real security) ===== */
+const ROLEN={admin:'مدير التسويق الإلكتروني',executive:'المدير التنفيذي',employee:'موظف'};
+async function H(p,salt){const t=salt+':'+p;if(window.crypto&&crypto.subtle){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}let h=5381;for(const c of t)h=(h*33^c.charCodeAt(0))>>>0;return'x'+h}
+const isA=()=>!!ME&&ME.role=='admin',can=()=>!!ME&&(ME.role=='admin'||(ME.role=='executive'&&ME.canEdit));
+async function seed(){const m=[['admin','Admin123!','admin','','مدير التسويق الإلكتروني'],['photographer','Photo123!','employee','e1','أحمد'],['mediabuyer','Media123!','employee','e2','محمد'],['onlineseller','Online123!','employee','e3','خالد'],['executive','Executive123!','executive','','المدير التنفيذي']];FULL.users=[];for(const[u,p,r,e,n]of m){const salt=Math.random().toString(36).slice(2);FULL.users.push({id:'u'+u,name:n,username:u,role:r,empId:e,canEdit:false,active:true,salt,hash:await H(p,salt),last:'',def:true})}save()}
+function scope(){S=FULL;if(ME&&ME.role=='employee'){const id=ME.empId,k=x=>Object.fromEntries(Object.entries(x).filter(([a])=>a.endsWith('|'+id)));S={...FULL,emps:FULL.emps.filter(e=>e.id==id),tasks:FULL.tasks.filter(t=>t.emp==id),notes:FULL.notes.filter(n=>n.emp==id),rat:k(FULL.rat),kp:k(FULL.kp),clients:(FULL.clients||[]).filter(c=>c.emp==id),log:[],users:[]};CUR=id}}
+let loginHtml=()=>`<div class="card" style="max-width:380px;margin:30px auto"><h3>تسجيل الدخول</h3><div class="f" style="grid-template-columns:1fr"><label>اسم المستخدم أو البريد الإلكتروني<input id="lu" autocomplete="username"></label><label>كلمة المرور<input id="lp" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')login()"></label></div><div id="le" class="al" style="display:none;margin-top:10px"></div><button class="btn gd" style="margin-top:10px;width:100%" onclick="login()">تسجيل الدخول</button></div><div class="demo" style="max-width:380px;margin:auto">⚠ <b>نسخة تجريبية (Prototype):</b> الحسابات التجريبية (admin / photographer / mediabuyer / onlineseller / executive) كلمات مرورها تجريبية ومعروفة <b>ويجب تغييرها</b>. هذا الدخول ليس حماية حقيقية للبيانات.</div>`;
+async function login(){const u=$('#lu').value.trim().toLowerCase(),p=$('#lp').value,us=FULL.users.find(x=>x.username.toLowerCase()==u);
+const ok=us&&us.active&&await H(p,us.salt)==us.hash;if(!ok){const e=$('#le');e.style.display='block';e.textContent=us&&!us.active?'الحساب معطّل':'بيانات الدخول غير صحيحة';return}
+us.last=new Date().toISOString();ME=us;try{sessionStorage.setItem('sess',us.id)}catch(e){}V='dash';log('تسجيل دخول');save();render()}
+function logout(){log('تسجيل خروج');ME=null;try{sessionStorage.removeItem('sess')}catch(e){}V='dash';try{history.pushState(null,'',location.href)}catch(e){}render()}
+const defPw=()=>FULL.users.some(u=>u.def&&u.active);
+VW.me=()=>{const e=S.emps[0];if(!e)return'<div class="mu">لا يوجد موظف مرتبط بحسابك</div>';const ts=S.tasks.filter(t=>t.date==today),s=stat(e.id,[today]),w=stat(e.id,rng(today,7));
+return`<h3>مرحبًا ${esc(e.name)}</h3><div class="mu">${esc(e.role)}</div><div class="grid">${kpi('مهامي اليوم',ts.length)}${kpi('المكتملة',ts.filter(t=>t.status=='مكتملة').length)}${kpi('المتأخرة',S.tasks.filter(t=>isLate(t)&&!ext(t)).length)}${kpi('نسبة الإنجاز',pc(s.comp))}${kpi('تقييمي الحالي',v(s.score!=null?s.score:w.score))}</div><div class="card"><h3>مهامي اليوم</h3>${taskTbl(ts)}</div><div class="card"><h3>آخر الملاحظات والإجراءات المطلوبة</h3>${noteTbl(S.notes.filter(n=>n.status!='تم الحل'))}</div><div class="card"><h3>تطور أدائي</h3>${trend(rng(today,14))}</div>`};
+const _d=VW.dash;VW.dash=()=>`<div class="card fl"><b>المستخدم الحالي: ${ROLEN[ME.role]}</b><span class="mu">(${esc(ME.name)})</span>${isA()?'<button class="btn gd" onclick="go(\'users\')">إدارة المستخدمين</button>':''}</div>`+(isA()&&defPw()?'<div class="al y">⚠ توجد حسابات بكلمات مرور تجريبية، يجب تغييرها من «إدارة المستخدمين».</div>':'')+_d();
+VW.users=()=>`<div class="fl"><h3 style="margin:0">إدارة المستخدمين</h3><button class="btn gd" onclick="openUser()">+ إضافة مستخدم</button></div>${defPw()?'<div class="al y">⚠ كلمات المرور التجريبية يجب تغييرها.</div>':''}<div class="card"><div class="w"><table><tr><th>الاسم</th><th>الوظيفة</th><th>Username</th><th>Role</th><th>الحالة</th><th>آخر دخول</th><th>الإجراءات</th></tr>${FULL.users.map(u=>`<tr><td>${esc(u.name)}</td><td>${u.empId?esc((FULL.emps.find(e=>e.id==u.empId)||{}).role||''):'—'}</td><td dir="ltr">${esc(u.username)}</td><td>${u.role}${u.role=='executive'&&u.canEdit?' (+تعديل)':''}${u.role=='employee'?[(u.perms||{}).notes?'ملاحظات':'',(u.perms||{}).rate?'تقييم':'',(u.perms||{}).addTask?'مهام':''].filter(Boolean).map(x=>` <span class="tag">${x}</span>`).join(''):''}</td><td>${u.active?'🟢 نشط':'⚪ معطّل'}</td><td>${u.last?u.last.slice(0,16).replace('T',' '):'—'}</td><td><button class="btn sm" onclick="openUser('${u.id}')">تعديل</button> <button class="btn sm" onclick="togU('${u.id}')">${u.active?'تعطيل':'تفعيل'}</button> <button class="btn sm" onclick="openPw('${u.id}')">إعادة تعيين كلمة المرور</button></td></tr>`).join('')}</table></div></div>`;
+function openUser(id){const u=id&&FULL.users.find(x=>x.id==id);M=u?{...u}:{id:null,name:'',username:'',role:'employee',empId:'',canEdit:false,perms:{notes:true,rate:true,addTask:true}};
+mod(`<h3>${u?'تعديل':'إضافة'} مستخدم</h3><div class="f">${fv('name','الاسم',M.name)}${fv('username','Username',M.username)}<label>Role<select id="m_role">${op([['admin','Admin – مدير التسويق'],['employee','Employee – موظف'],['executive','Executive – مدير تنفيذي']],M.role)}</select></label><label>الموظف المرتبط (Employee ID)<select id="m_empId">${op(EO(),M.empId,'— بدون —')}</select></label>${u?'':fv('pw','كلمة المرور (8 أحرف فأكثر)','','password')}<label>صلاحية تعديل التقييم (للمدير التنفيذي)<input type="checkbox" id="m_canEdit" ${M.canEdit?'checked':''}></label><div class="full" style="border:1px solid var(--bd);border-radius:8px;padding:8px"><b>صلاحيات الموظف (Employee)</b><br><label><input type="checkbox" id="m_pn" ${(M.perms||{}).notes?'checked':''}> يضيف ملاحظات على نفسه ويعدّل ملاحظاته</label><label><input type="checkbox" id="m_pr" ${(M.perms||{}).rate?'checked':''}> يعبّئ تقييمات ومؤشرات تقريره اليومي</label><label><input type="checkbox" id="m_pa" ${(M.perms||{}).addTask?'checked':''}> يضيف مهام لنفسه</label></div></div><div class="fl" style="margin-top:12px"><button class="btn gd" onclick="saveUser()">حفظ</button><button class="btn" onclick="close_()">إلغاء</button></div>`)}
+async function saveUser(){const g=k=>$('#m_'+k).value.trim(),n={name:g('name'),username:g('username'),role:g('role'),empId:g('empId'),canEdit:$('#m_canEdit').checked,perms:{notes:$('#m_pn').checked,rate:$('#m_pr').checked,addTask:$('#m_pa').checked}};
+if(!n.name||!n.username)return toast('الاسم واسم المستخدم مطلوبان');if(n.role=='employee'&&!n.empId)return toast('اربط الحساب بموظف');
+if(FULL.users.some(u=>u.username.toLowerCase()==n.username.toLowerCase()&&u.id!=M.id))return toast('اسم المستخدم مستخدم');
+if(M.id){const u=FULL.users.find(x=>x.id==M.id);if(u.role=='admin'&&n.role!='admin'&&!FULL.users.some(x=>x.role=='admin'&&x.active&&x.id!=u.id))return toast('لا يمكن إزالة آخر Admin');Object.assign(u,n);log('عدّل مستخدمًا: '+u.username)}
+else{const p=$('#m_pw').value;if(p.length<8)return toast('كلمة المرور قصيرة');const salt=Math.random().toString(36).slice(2);FULL.users.push({id:'u'+Date.now(),...n,active:true,salt,hash:await H(p,salt),last:'',def:false});log('أضاف مستخدمًا: '+n.username)}fin()}
+function togU(id){const u=FULL.users.find(x=>x.id==id);if(u.active&&(u.id==ME.id||(u.role=='admin'&&!FULL.users.some(x=>x.role=='admin'&&x.active&&x.id!=u.id))))return toast('لا يمكن تعطيل هذا الحساب');u.active=!u.active;log((u.active?'فعّل ':'عطّل ')+'المستخدم '+u.username);save();render()}
+function openPw(id){M={uid:id};const self=!isA();mod(`<h3>تغيير كلمة المرور</h3><div class="f">${self?fv('old','كلمة المرور الحالية','','password'):''}${fv('npw','كلمة المرور الجديدة (8 أحرف فأكثر)','','password')}</div><div class="fl" style="margin-top:12px"><button class="btn gd" onclick="savePw()">حفظ</button><button class="btn" onclick="close_()">إلغاء</button></div>`)}
+async function savePw(){const u=FULL.users.find(x=>x.id==M.uid);if(!u||!(isA()||u.id==ME.id))return;if(!isA()&&await H($('#m_old').value,u.salt)!=u.hash)return toast('كلمة المرور الحالية غير صحيحة');const p=$('#m_npw').value;if(p.length<8)return toast('كلمة المرور قصيرة');u.salt=Math.random().toString(36).slice(2);u.hash=await H(p,u.salt);u.def=false;log('غيّر كلمة مرور '+u.username);fin();toast('تم التغيير')}
+function saveOwn(){const o=S.tasks.find(x=>x.id==M.id);if(!o)return;const ch=[];[['empNote','ملاحظة الموظف'],['block','المعوقات'],['reason','سبب عدم الإنجاز']].forEach(([k])=>{const n=$('#m_'+k).value;if(o[k]!=n)ch.push(L[k]);o[k]=n});const p=+$('#m_pct').value;if(o.status!=M.status||o.pct!=p)ch.push('الحالة/الإنجاز');o.status=M.status;o.pct=p;if(o.status=='مكتملة')o.reason='';log(`حدّث مهمة «${o.title}» (${ch.join('، ')||'بدون تغيير'})`);fin()}
+const _g=(n,chk)=>{const f=window[n];window[n]=function(...a){if(!ME||!chk(...a)){toast('غير مصرّح');return}return f.apply(this,a)}};
+const emE=()=>!!ME&&ME.role=='employee',pm=k=>emE()&&!!(ME.perms||{})[k],pNotes=()=>can()||pm('notes'),pRate=()=>can()||pm('rate'),pAdd=()=>can()||pm('addTask');
+const ownNote=id=>((S.notes.find(n=>n.id==id))||{}).by==(ME&&ME.id);
+_g('openNote',id=>can()||(pm('notes')&&(!id||ownNote(id))));
+_g('solve',id=>can()||(pm('notes')&&ownNote(id)));
+const _on=openNote;openNote=function(id){const n=id?S.notes.find(x=>x.id==id):null;_on(id);if(emE()&&pm('notes')&&(!id||(n&&n.by==ME.id)))M.by=ME.id};
+const _sn=saveNote;saveNote=function(){if(!ME)return;if(can())return _sn();if(!pm('notes'))return toast('غير مصرّح');if(M.id&&!ownNote(M.id))return toast('غير مصرّح');$('#m_emp').value=ME.empId;M.by=ME.id;try{S=FULL;_sn()}finally{scope()}};
+['setR','setK'].forEach(n=>{const f=window[n];window[n]=function(id,...a){if(!ME)return;if(can())return f(id,...a);if(!(pm('rate')&&id==ME.empId))return toast('غير مصرّح');try{S=FULL;f(id,...a)}finally{scope()}}});
+['openEmp','saveEmp','del','clearAll','restore','openUser','saveUser','togU'].forEach(n=>_g(n,isA));
+_g('openPw',id=>isA()||id==ME.id);
+_g('openTask',id=>can()||(ME.role=='employee'&&(id?S.tasks.some(t=>t.id==id):pAdd())));
+_g('doneT',id=>can()||(ME.role=='employee'&&S.tasks.some(t=>t.id==id)));
+const _st=saveTask;saveTask=function(){if(!ME)return;if(can())return _st();if(!emE())return;if(M.id)return saveOwn();if(!pAdd())return toast('غير مصرّح');$('#m_emp').value=ME.empId;['mgrNote','action','follow'].forEach(k=>$('#m_'+k).value='');$('#m_fstatus').value='لا يوجد';M.quality=0;try{S=FULL;_st()}finally{scope()}};
+const _ot=openTask;openTask=function(id,pre){_ot(id,pre);if(ME&&!can()){(id?['date','emp','title','desc','due','mgrNote','action','follow','fstatus']:['emp','mgrNote','action','follow','fstatus']).forEach(k=>{const e=$('#m_'+k);if(e)e.disabled=true});document.querySelectorAll((id?'[data-k=pri] button,':'')+'[data-k=quality] button').forEach(b=>b.disabled=true)}};
+const ALLT=[['dash','لوحة التحكم'],['daily','التقرير اليومي'],['tasks','المهام'],['br','مهام الفروع'],['notes','الملاحظات'],['follow','المتابعة'],['week','الأسبوعي'],['month','الشهري'],['emps','الموظفون']];
+function tabsFor(){if(ME.role=='admin')return[...ALLT,['users','إدارة المستخدمين'],['log','السجل']];if(ME.role=='executive')return ALLT;return[['me','لوحتي'],['daily','تقريري اليومي'],['tasks','مهامي'],['br','مهامي بالفرع'],['notes','ملاحظاتي'],['week','أسبوعي'],['month','شهري'],['prof','ملفي']]}
+function lock(){const e=emE(),c=can();document.querySelectorAll('#app [onclick]').forEach(b=>{const o=b.getAttribute('onclick');let rm=false;
+if(/^(openEmp|del|clearAll|restore)/.test(o))rm=!isA();else if(/^(openNote|solve)/.test(o))rm=!pNotes();else if(/^openTask\('t/.test(o)||/^doneT/.test(o))rm=!c&&!e;else if(/^openTask\(/.test(o))rm=!pAdd();if(rm)b.remove()});
+if(!pRate())document.querySelectorAll('#app input[type=range],#app details input').forEach(i=>i.disabled=true);if(!isA()){const t=$('#bk');if(t)t.closest('.card').remove()}}
+const _r0=render;
+render=function(){if(ME){const u=FULL.users&&FULL.users.find(x=>x.id==ME.id&&x.active);ME=u||null}
+if(!ME){S=FULL;$('#nav').innerHTML='';$('#app').innerHTML=loginHtml();return}
+scope();TABS=tabsFor();if(!TABS.some(t=>t[0]==V)&&V!='prof')V=TABS[0][0];_r0();
+$('#nav').insertAdjacentHTML('beforeend',`<span class="tag" style="margin-inline-start:auto">${esc(ME.name)} · ${ROLEN[ME.role]}</span><button onclick="openPw2()">كلمة المرور</button><button onclick="logout()" style="color:var(--rd)">تسجيل الخروج</button>`);lock()};
+async function mig10(){if(FULL.mig10||!FULL.demo)return;FULL.mig10=1;
+const E=[['e5','سارة',R[3]],['e6','فهد',R[1]],['e7','نورة',R[4]],['e8','عمر',R[2]]];
+E.forEach(([id,name,role])=>{if(!FULL.emps.some(e=>e.id==id)){FULL.emps.push({id,name,role,start:addD(today,-30)});
+for(let d=2;d>=0;d--){const date=addD(today,-d);for(let k=0;k<2;k++){const done=d>0||k==0;FULL.tasks.push({id:'t'+id+d+k,date,emp:id,title:['متابعة يومية','تنفيذ خطة الأسبوع'][k],desc:'',pri:'متوسطة',due:date,status:done?'مكتملة':'لم تبدأ',pct:done?100:0,quality:done?4:0,empNote:'',block:'',mgrNote:'',action:'',follow:'',fstatus:'لا يوجد',reason:''})}
+FULL.rat[date+'|'+id]={time:4,proc:4,init:3}}}});
+const m=[['samibranch','Sami123!','e4','سامي'],['saraseller','Sara123!','e5','سارة'],['fahadphoto','Fahad123!','e6','فهد'],['noracoverage','Nora123!','e7','نورة'],['omarmedia','Omar123!','e8','عمر']];
+for(const[u,pw,e,n]of m){if(FULL.users.some(x=>x.username==u))continue;const salt=Math.random().toString(36).slice(2);FULL.users.push({id:'u'+u,name:n,username:u,role:'employee',empId:e,canEdit:false,active:true,salt,hash:await H(pw,salt),last:'',def:true})}
+save()}
+function migPerms(){if(FULL.migPerms)return;FULL.migPerms=1;FULL.users.forEach(u=>{if(u.role=='employee')u.perms={notes:true,rate:true,addTask:true};if(u.role=='executive')u.canEdit=true});save()}
+async function boot(){if(!FULL.users)await seed();await mig10();migPerms();await migBT();await migCRM();try{const id=sessionStorage.getItem('sess');ME=FULL.users.find(u=>u.id==id&&u.active)||null}catch(e){}render()}
+onpageshow=e=>{if(e.persisted)boot()};onpopstate=()=>render();
+/* ===== نظام الفرع + نوع المهمة (Tamer Ghonim وأي موظف يُفعَّل له النموذج) ===== */
+const BR=['الخبر','الدمام','الرياض - السويدي','الرياض - غرناطة','جدة','أوتو فليكس'];
+const TY=['تصوير سيارة قبل / بعد','صور وفيديو','فيديوهات خدمات متنوعة','فيديوهات لقاء ورأي العميل','صور Google Maps','يوميات المعرض','يوميات أوتو فليكس','مونتاج','نقل ملفات','ترتيب الملفات','أخرى'];
+const G={p:TY.slice(0,4),m:['مونتاج'],g:['صور Google Maps'],d:['يوميات المعرض','يوميات أوتو فليكس'],f:['نقل ملفات','ترتيب الملفات']};
+let FB={emp:'',branch:'',type:'',status:'',from:'',to:''};
+const isBT=id=>{const e=(FULL.emps||[]).find(x=>x.id==id);return !!(e&&e.bt)};
+const tyStr=t=>(t.types||[]).map(x=>x=='أخرى'&&t.typeOther?'أخرى: '+t.typeOther:x).join('، ');
+const bte=()=>S.emps.filter(e=>e.bt);
+Object.assign(L,{branch:'الفرع',types:'نوع المهمة',typeOther:'نوع آخر',t1:'وقت البداية',t2:'وقت النهاية'});
+const btHtml=()=>`<div id="bt" class="full" style="display:${isBT(M.emp)?'block':'none'}"><div class="card" style="margin:0;border-color:var(--pu)"><b>الفرع</b> <span class="mu">(اختيار واحد فقط)</span><div class="ch big" id="brc">${BR.map(b=>`<button type="button" class="${M.branch==b?'on':''}" onclick="pickBr('${b}')">${b}</button>`).join('')}</div><b>نوع المهمة</b> <span class="mu">(يمكن اختيار أكثر من نوع)</span><div class="ch big" id="tyc">${TY.map(b=>`<button type="button" class="${M.types.includes(b)?'on':''}" onclick="togTy('${b}')">${b}</button>`).join('')}</div><div id="tow" style="display:${M.types.includes('أخرى')?'block':'none'}"><label style="display:flex;flex-direction:column;gap:4px;color:var(--mu);font-size:12px">اكتب نوع المهمة<input id="m_to" value="${esc(M.typeOther)}"></label></div><div class="f" style="margin-top:8px">${fv('t1','وقت البداية',M.t1,'time')}${fv('t2','وقت النهاية',M.t2,'time')}</div></div></div>`;
+function pickBr(v){M.branch=v;document.querySelectorAll('#brc button').forEach(b=>b.classList.toggle('on',b.textContent==v))}
+function togTy(v){const i=M.types.indexOf(v);if(i>=0)M.types.splice(i,1);else M.types.push(v);document.querySelectorAll('#tyc button').forEach(b=>b.classList.toggle('on',M.types.includes(b.textContent)));$('#tow').style.display=M.types.includes('أخرى')?'block':'none'}
+function empChg(){const bt=isBT($('#m_emp').value);$('#bt').style.display=bt?'block':'none';const t=$('#ttl');if(t)t.style.display=bt?'none':'';document.querySelectorAll('[data-k=status] button').forEach(b=>{b.style.display=bt&&(b.textContent=='مكتملة جزئيًا'||b.textContent=='متوقفة')?'none':''})}
+function btRead(){const eid=emE()?ME.empId:($('#m_emp')||{}).value;if(!isBT(eid))return true;
+M.t1=$('#m_t1').value;M.t2=$('#m_t2').value;M.typeOther=($('#m_to').value||'').trim();
+if(!M.branch){toast('اختر الفرع');return false}if(!M.types.length){toast('اختر نوع المهمة');return false}
+if(M.types.includes('أخرى')&&!M.typeOther){toast('اكتب نوع المهمة');return false}
+if(M.t1&&M.t2&&M.t2<M.t1){toast('وقت النهاية قبل وقت البداية');return false}
+if(!M.types.includes('أخرى'))M.typeOther='';if(!$('#m_title').value.trim())$('#m_title').value=tyStr(M)+' – '+M.branch;return true}
+const _o3=openTask;openTask=function(id,pre){_o3(id,pre);if($('#m_emp'))empChg()};
+const _s3=saveTask;saveTask=function(){if(!ME)return;if(!btRead())return;if(emE()&&M.id&&isBT(ME.empId)){const o=S.tasks.find(x=>x.id==M.id);if(o){o.branch=M.branch;o.types=[...M.types];o.typeOther=M.typeOther;o.t1=M.t1;o.t2=M.t2}}_s3()};
+function btTasks(o){const ids=bte().map(e=>e.id);return S.tasks.filter(t=>ids.includes(t.emp)&&(!FB.emp||t.emp==FB.emp)&&(!FB.branch||t.branch==FB.branch)&&(!FB.type||(t.types||[]).includes(FB.type))&&(!FB.status||t.status==FB.status)&&(o.day?t.date==o.day:((!FB.from||t.date>=FB.from)&&(!FB.to||t.date<=FB.to))))}
+const setFB=(k,v)=>{FB[k]=v;render()};
+function btView(o){o=o||{};const E=bte();if(!E.length)return'<div class="card mu">لا يوجد موظف مفعّل له نموذج الفرع/نوع المهمة (يُفعَّل من صفحة الموظفين).</div>';
+const a=btTasks(o),n=a.length,c=s=>a.filter(t=>t.status==s).length,has=g=>a.filter(t=>(t.types||[]).some(x=>g.includes(x))).length,late=a.filter(isLate).length;
+const row=(l,b)=>`<tr><td>${esc(l)}</td><td>${b.length}</td><td>${b.filter(t=>t.status=='مكتملة').length}</td><td>${b.filter(t=>t.status=='قيد التنفيذ').length}</td><td>${b.filter(isLate).length}</td><td style="min-width:90px"><div class="bar"><i style="width:${n?Math.round(b.length/n*100):0}%"></i></div></td></tr>`;
+const tb=(h,rows)=>`<div class="card"><h3>${h}</h3><div class="w"><table><tr><th></th><th>الإجمالي</th><th>مكتملة</th><th>قيد التنفيذ</th><th>متأخرة</th><th>النسبة</th></tr>${rows}</table></div></div>`;
+const sl=(k,ph,arr)=>`<select onchange="setFB('${k}',this.value)">${op(arr,FB[k],ph)}</select>`;
+return`<div class="card" style="border-color:var(--pu)"><div class="fl"><h3 style="margin:0">مهام الفروع والأنواع${o.day?' – '+o.day:''}</h3><button class="btn gd sm" onclick="openTask(null,{emp:'${E[0].id}',date:'${o.day||today}'})">+ مهمة</button></div>
+<div class="fl">${sl('emp','كل الموظفين',E.map(e=>[e.id,e.name]))}${sl('branch','كل الفروع',BR)}${sl('type','كل الأنواع',TY)}${sl('status','كل الحالات',TS)}${o.day?'':`<label class="mu">من <input type="date" value="${FB.from}" onchange="setFB('from',this.value)"></label><label class="mu">إلى <input type="date" value="${FB.to}" onchange="setFB('to',this.value)"></label>`}<button class="btn sm" onclick="FB={emp:'',branch:'',type:'',status:'',from:'',to:''};render()">مسح الفلاتر</button></div>
+<div class="grid">${kpi('إجمالي المهام',n)}${kpi('مكتملة',c('مكتملة'))}${kpi('قيد التنفيذ',c('قيد التنفيذ'))}${kpi('متأخرة',late)}${kpi('لم تبدأ',c('لم تبدأ'))}${kpi('ملغاة',c('ملغاة'))}</div>
+<div class="grid">${kpi('مهام التصوير',has(G.p))}${kpi('مونتاج',has(G.m))}${kpi('Google Maps',has(G.g))}${kpi('يوميات',has(G.d))}${kpi('نقل/ترتيب ملفات',has(G.f))}</div><div class="mu">المهمة ذات الأنواع المتعددة تُحتسب ضمن كل نوع فيها.</div></div>
+${tb('كم مهمة لكل موظف',E.map(e=>row(e.name,a.filter(t=>t.emp==e.id))).join(''))}${tb('تحليل حسب الفرع',BR.map(x=>row(x,a.filter(t=>t.branch==x))).join(''))}${tb('تحليل حسب نوع المهمة',TY.map(x=>row(x,a.filter(t=>(t.types||[]).includes(x)))).join(''))}
+<div class="card"><h3>جدول المهام (${n})</h3>${n?`<div class="w"><table><tr><th>الموظف</th><th>الفرع</th><th>نوع المهمة</th><th>التاريخ</th><th>الحالة</th><th>الوقت</th><th>الملاحظات</th><th></th></tr>${a.slice().sort((x,y)=>y.date.localeCompare(x.date)||(y.t1||'').localeCompare(x.t1||'')).map(t=>`<tr><td>${esc(nm(t.emp))}</td><td>${t.branch||'—'}</td><td>${esc(tyStr(t))||'—'}</td><td>${t.date}</td><td>${t.status}${isLate(t)?' ⏰':''}</td><td dir="ltr">${t.t1||'—'}${t.t2?' → '+t.t2:''}</td><td>${esc([t.desc,t.empNote,t.mgrNote].filter(Boolean).join(' | '))}</td><td><button class="btn sm" onclick="openTask('${t.id}')">✎</button></td></tr>`).join('')}</table></div>`:'<div class="mu">لا توجد مهام مطابقة</div>'}</div>`}
+VW.br=()=>'<h3>مهام الفروع والأنواع</h3>'+btView();
+const _dl=VW.daily;VW.daily=()=>_dl()+btView({day:DD});
+const _d3=VW.dash;VW.dash=()=>_d3()+btView();
+const _m3=VW.me;VW.me=()=>_m3()+btView();
+async function migBT(){if(FULL.migBT)return;FULL.migBT=1;
+FULL.tasks.forEach(t=>{if(t.types===undefined){t.branch='';t.types=[];t.typeOther='';t.t1='';t.t2=''}});
+let e=FULL.emps.find(x=>x.name=='Tamer Ghonim');if(!e){e={id:'e9',name:'Tamer Ghonim',role:R[1],start:addD(today,-30),bt:true};FULL.emps.push(e)}else e.bt=true;
+if(FULL.demo&&!FULL.tasks.some(t=>t.emp==e.id)){let sd=11;const rnd=()=>(sd=(sd*9301+49297)%233280)/233280;
+for(let d=6;d>=0;d--){const date=addD(today,-d);for(let k=0;k<3;k++){const ty=[TY[Math.floor(rnd()*TY.length-1e-9)]];if(rnd()<.25)ty.push(TY[Math.floor(rnd()*7)]);const types=[...new Set(ty)],x=rnd(),br=BR[Math.floor(rnd()*6)];let st;
+if(d==0)st=['مكتملة','قيد التنفيذ','لم تبدأ'][k];else st=x<.75?'مكتملة':x<.9?'متأخرة':'ملغاة';
+const h=9+k*2,pad=n=>String(n).padStart(2,'0'),o={id:'tb'+d+k,date,emp:e.id,title:'',desc:rnd()<.3?'ملاحظة تجريبية':'',pri:'متوسطة',due:date,status:st,pct:st=='مكتملة'?100:st=='قيد التنفيذ'?50:0,quality:st=='مكتملة'?3+Math.round(rnd()*2):0,empNote:'',block:'',mgrNote:'',action:'',follow:'',fstatus:'لا يوجد',reason:'',branch:br,types,typeOther:types.includes('أخرى')?'مهمة خاصة':'',t1:pad(h)+':00',t2:pad(h+1)+':30'};
+o.title=tyStr(o)+' – '+br;FULL.tasks.push(o)}
+FULL.rat[date+'|'+e.id]={time:3+Math.round(rnd()*2),proc:3+Math.round(rnd()*2),init:3+Math.round(rnd()*2)}}}
+if(!FULL.users.some(u=>u.username=='tamer')){const salt=Math.random().toString(36).slice(2);FULL.users.push({id:'utamer',name:'Tamer Ghonim',username:'tamer',role:'employee',empId:e.id,canEdit:false,perms:{notes:true,rate:true,addTask:true},active:true,salt,hash:await H('Tamer123!',salt),last:'',def:true})}
+save()}
+
+/* ===== قسم البائع الأونلاين (CRM): M Shazly وأي بائع يُفعَّل له القسم ===== */
+const CST=['عميل جاد','عميل مؤهل','تم إرسال عرض سعر','بانتظار رد العميل','متابعة','تم الحجز','تم البيع','غير مهتم','لم يتم الرد','مغلق / غير مؤهل'];
+const CLOSED=['تم البيع','غير مهتم','مغلق / غير مؤهل'],TARGET=300000;
+const DL={city:['الدمام','الخبر','الظهران','الأحساء','الرياض','جدة','مكة','المدينة'],service:['تلميع','حماية سيراميك','تظليل','صيانة دورية','فحص شامل','غسيل تفصيلي','إكسسوارات'],source:['Snapchat','Instagram','TikTok','Google','واتساب','توصية عميل','زيارة فرع']};
+let CSel='',CF={q:'',status:'',city:'',service:'',source:''},CM={},SC={};
+const crmEmp=id=>{const e=(FULL.emps||[]).find(x=>x.id==id);return !!(e&&e.crm)};
+const crmEmps=()=>S.emps.filter(e=>e.crm);
+const canC=id=>!!ME&&crmEmp(id)&&(can()||(emE()&&ME.empId==id));
+const rdC=c=>!!ME&&(ME.role!='employee'||(ME.empId==c.emp&&crmEmp(c.emp)));
+const canNew=()=>emE()?canC(ME.empId):(can()&&S.emps.some(e=>e.crm));
+const SAR=x=>Number(x||0).toLocaleString('en-US')+' ر.س',waN=p=>/^0\d{9}$/.test(p)?'966'+p.slice(1):p;
+function normPh(p){let d=String(p).replace(/[٠-٩]/g,x=>'٠١٢٣٤٥٦٧٨٩'.indexOf(x)).replace(/\D/g,'');if(d.startsWith('00'))d=d.slice(2);if(d.startsWith('966'))d=d.slice(3);if(/^5\d{8}$/.test(d))d='0'+d;return d}
+const dt=t=>t.slice(0,16).replace('T',' ');
+function newClient(){if(!canNew())return toast('غير مصرّح');const E=crmEmps();
+mod(`<h3>+ إضافة عميل جديد</h3><label class="mu" style="display:flex;flex-direction:column;gap:6px">رقم جوال العميل<input id="np" type="tel" inputmode="tel" dir="ltr" placeholder="05xxxxxxxx" style="font-size:20px;padding:10px" onkeydown="if(event.key=='Enter')chkPhone()"></label>${emE()?'':`<label class="mu" style="display:flex;flex-direction:column;gap:6px;margin-top:8px">البائع<select id="nps">${op(E.map(e=>[e.id,e.name]),CSel||E[0].id)}</select></label>`}<div class="fl" style="margin-top:12px"><button class="btn gd" onclick="chkPhone()">متابعة</button><button class="btn" onclick="close_()">إلغاء</button></div>`)}
+function chkPhone(){const p=normPh($('#np').value);if(!/^\d{8,15}$/.test(p))return toast('رقم الجوال غير صحيح');
+const emp=emE()?ME.empId:$('#nps').value;if(!canC(emp))return toast('غير مصرّح');
+const ex=FULL.clients.find(c=>c.phone==p);if(ex){if(!rdC(ex))return toast('الرقم مسجل لدى بائع آخر');toast('العميل موجود مسبقًا – تم فتح ملفه');return openClient(ex.id)}
+openClient(null,{phone:p,emp})}
+function openClient(id,np){const c=id?FULL.clients.find(x=>x.id==id):null;if(id&&(!c||!rdC(c)))return toast('غير مصرّح');
+CM={id:c?c.id:null,np:np||null};const d=c||{...np,name:'',city:'',carType:'',carModel:'',service:'',source:'',quote:0,notes:'',status:CST[0],created:today,lastFollow:'',nextFollow:'',nextTime:'',nextNote:'',sale:0,journey:[]},ro=c?!canC(c.emp):false,dis=ro?' disabled':'';
+const ff=(k,l,t,list)=>`<label>${l}<input id="c_${k}" type="${t||'text'}" value="${esc(d[k])}"${list?` list="dl_${list}"`:''}${dis}></label>`;
+const seq=[];d.journey.forEach(j=>{if(j.kind!='note'&&seq[seq.length-1]!=j.to)seq.push(j.to)});
+const st=c?`<select id="cst" onchange="chg('${c.id}',this.value)"${dis}>${op(CST,d.status)}</select>`:`<select id="cst">${op(CST.filter(x=>x!='تم الحجز'&&x!='تم البيع'),d.status)}</select>`;
+const q=c&&!ro?`<button class="btn" onclick="$('#cst').focus()">تغيير الحالة</button><button class="btn" onclick="cNote('${c.id}')">إضافة ملاحظة</button><button class="btn" onclick="chg('${c.id}','متابعة')">تحديد متابعة</button><button class="btn" onclick="chg('${c.id}','تم إرسال عرض سعر')">إضافة عرض سعر</button><button class="btn" onclick="chg('${c.id}','تم الحجز')">تسجيل حجز</button><button class="btn gd" onclick="chg('${c.id}','تم البيع')">تسجيل بيع</button>`:'';
+mod(`<div class="fl"><h3 style="margin:0" dir="ltr">${esc(d.phone)}</h3><b>الحالة:</b>${st}${d.status=='تم البيع'?`<span class="tag">💰 ${SAR(d.sale)}</span>`:''}</div>
+${c?`<div class="fl"><a class="btn" style="text-decoration:none" href="tel:${esc(d.phone)}">📞 اتصال</a><a class="btn" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/${waN(d.phone)}">💬 واتساب</a>${q}</div>`:''}
+<div class="f">${ff('name','اسم العميل')}${ff('city','المدينة','text','city')}${ff('carType','نوع السيارة')}${ff('carModel','موديل السيارة')}${ff('service','الخدمة المطلوبة','text','service')}${ff('source','مصدر العميل','text','source')}${ff('quote','قيمة عرض السعر (ر.س)','number')}<label class="full">ملاحظات<textarea id="c_notes" rows="2"${dis}>${esc(d.notes)}</textarea></label></div>
+<datalist id="dl_city">${DL.city.map(x=>`<option value="${x}">`).join('')}</datalist><datalist id="dl_service">${DL.service.map(x=>`<option value="${x}">`).join('')}</datalist><datalist id="dl_source">${DL.source.map(x=>`<option value="${x}">`).join('')}</datalist>
+<div class="mu" style="margin-top:8px">أضيف: ${d.created} · آخر متابعة: ${d.lastFollow||'—'} · المتابعة القادمة: ${d.nextFollow?d.nextFollow+' '+(d.nextTime||'')+(d.nextNote?' – '+esc(d.nextNote):''):'—'}</div>
+${c?`<div class="card" style="margin-top:10px"><h3>رحلة العميل</h3><div style="margin-bottom:8px">${seq.map(x=>`<span class="tag">${x}</span>`).join(' ← ')}</div>${d.journey.slice().reverse().map(j=>`<div class="mu">${dt(j.t)} — ${j.kind=='note'?'📝 ملاحظة':j.from?esc(j.from)+' ← <b>'+esc(j.to)+'</b>':'تسجيل: <b>'+esc(j.to)+'</b>'}${j.note?' — '+esc(j.note):''} <small>(${esc(j.by||'')})</small></div>`).join('')}</div>`:''}
+<div class="fl" style="margin-top:12px">${ro?'':'<button class="btn gd" onclick="saveClient()">حفظ البيانات</button>'}<button class="btn" onclick="close_()">إغلاق</button></div>`)}
+function saveClient(){const g=k=>$('#c_'+k).value.trim(),f={name:g('name'),city:g('city'),carType:g('carType'),carModel:g('carModel'),service:g('service'),source:g('source'),quote:+$('#c_quote').value||0,notes:g('notes')};
+if(!f.name)return toast('أدخل اسم العميل');
+if(CM.id){const c=FULL.clients.find(x=>x.id==CM.id);if(!c||!canC(c.emp))return toast('غير مصرّح');Object.assign(c,f);log('عدّل بيانات العميل '+c.name);return fin()}
+const np=CM.np;if(!np||!canC(np.emp))return toast('غير مصرّح');if(FULL.clients.some(x=>x.phone==np.phone))return toast('الرقم مسجل مسبقًا');
+const s=$('#cst').value;FULL.clients.push({id:'c'+Date.now(),phone:np.phone,emp:np.emp,...f,status:s,created:today,lastFollow:today,nextFollow:'',nextTime:'',nextNote:'',sale:0,saleDate:'',journey:[{t:new Date().toISOString(),from:'',to:s,note:'تسجيل العميل',by:ME.name}]});log('أضاف عميلًا: '+f.name);fin()}
+function chg(id,to){const c=FULL.clients.find(x=>x.id==id);if(!c||!canC(c.emp))return toast('غير مصرّح');SC={id,to};
+mod(`<h3>تغيير الحالة: ${esc(c.name)}</h3><div class="mu">${c.status} ← <b style="color:var(--gd)">${to}</b></div><div class="f" style="margin-top:8px">${to=='متابعة'?`<label>موعد المتابعة القادمة (التاريخ)<input type="date" id="s_date" value="${addD(today,1)}"></label><label>الوقت<input type="time" id="s_time" value="10:00"></label><label class="full">ملاحظات المتابعة<input id="s_fnote"></label>`:''}${to=='تم إرسال عرض سعر'?`<label>قيمة عرض السعر (ر.س)<input type="number" id="s_val" value="${c.quote||''}"></label>`:''}${to=='تم البيع'?`<label>قيمة البيع (ر.س)<input type="number" id="s_val" value="${c.quote||''}"></label>`:''}<label class="full">ملاحظات<textarea id="s_note" rows="2"></textarea></label></div><div class="fl" style="margin-top:12px"><button class="btn gd" onclick="saveChg()">حفظ</button><button class="btn" onclick="openClient('${id}')">رجوع</button></div>`)}
+function saveChg(){const c=FULL.clients.find(x=>x.id==SC.id),to=SC.to;if(!c||!canC(c.emp))return toast('غير مصرّح');const note=$('#s_note').value.trim(),val=$('#s_val')?+$('#s_val').value:0;
+if(to=='متابعة'&&!$('#s_date').value)return toast('حدد تاريخ المتابعة');if((to=='تم البيع'||to=='تم إرسال عرض سعر')&&!(val>0))return toast('أدخل القيمة');
+const from=c.status;c.journey.push({t:new Date().toISOString(),from,to,note,by:ME.name});c.status=to;c.lastFollow=today;
+if(to=='متابعة'){c.nextFollow=$('#s_date').value;c.nextTime=$('#s_time').value;c.nextNote=$('#s_fnote').value.trim()}else if(CLOSED.includes(to)){c.nextFollow='';c.nextTime='';c.nextNote=''}
+if(to=='تم إرسال عرض سعر')c.quote=val;if(to=='تم البيع'){c.sale=val;c.saleDate=today}else if(from=='تم البيع'){c.sale=0;c.saleDate=''}
+log(`عميل ${c.name}: ${from} ← ${to}`);fin();openClient(c.id)}
+function cNote(id){const c=FULL.clients.find(x=>x.id==id);if(!c||!canC(c.emp))return toast('غير مصرّح');SC={id};mod(`<h3>إضافة ملاحظة: ${esc(c.name)}</h3><textarea id="s_note" rows="3" style="width:100%"></textarea><div class="fl" style="margin-top:12px"><button class="btn gd" onclick="saveCNote()">حفظ</button><button class="btn" onclick="openClient('${id}')">رجوع</button></div>`)}
+function saveCNote(){const c=FULL.clients.find(x=>x.id==SC.id),n=$('#s_note').value.trim();if(!c||!canC(c.emp))return toast('غير مصرّح');if(!n)return toast('اكتب الملاحظة');c.journey.push({t:new Date().toISOString(),from:c.status,to:c.status,note:n,kind:'note',by:ME.name});c.lastFollow=today;log('ملاحظة على العميل '+c.name);fin();openClient(c.id)}
+const CLS=()=>(S.clients||[]).filter(c=>emE()||!CSel||c.emp==CSel);
+const sellerSel=()=>!emE()&&crmEmps().length>1?`<select onchange="CSel=this.value;render()">${op(crmEmps().map(e=>[e.id,e.name]),CSel,'كل البائعين')}</select>`:'';
+const ftbl=a=>a.length?`<div class="w"><table><tr><th>العميل</th><th>الجوال</th><th>الحالة</th><th>الموعد</th><th>ملاحظات المتابعة</th><th></th></tr>${a.map(c=>`<tr><td>${esc(c.name)}</td><td dir="ltr">${esc(c.phone)}</td><td>${c.status}</td><td>${c.nextFollow} ${c.nextTime||''}</td><td>${esc(c.nextNote)}</td><td><button class="btn sm" onclick="openClient('${c.id}')">فتح</button></td></tr>`).join('')}</table></div>`:'<div class="mu">لا يوجد</div>';
+const newBtn=()=>canNew()?'<button class="btn gd" onclick="newClient()">+ إضافة عميل جديد</button>':'';
+VW.sd=()=>{const A=CLS(),n=s=>A.filter(c=>c.status==s).length,mk=today.slice(0,7),E=crmEmps(),SL=emE()?E:(CSel?E.filter(e=>e.id==CSel):E);
+const open=A.filter(c=>c.nextFollow&&!CLOSED.includes(c.status)).sort((x,y)=>(x.nextFollow+(x.nextTime||'')).localeCompare(y.nextFollow+(y.nextTime||''))),td=open.filter(c=>c.nextFollow==today),lt=open.filter(c=>c.nextFollow<today),up=open.filter(c=>c.nextFollow>today);
+const sold=A.filter(c=>c.status=='تم البيع'&&(c.saleDate||'').slice(0,7)==mk),sum=sold.reduce((a,c)=>a+(+c.sale||0),0),tg=TARGET*Math.max(1,SL.length),pc2=Math.round(sum/tg*100);
+return`<div class="fl"><h3 style="margin:0">لوحة البائع${SL.length==1?' – '+esc(SL[0].name):''}</h3>${sellerSel()}${newBtn()}<button class="btn" onclick="go('cl')">عملائي</button></div>
+<div class="grid">${kpi('إجمالي العملاء',A.length)}${kpi('عملاء جدد (هذا الشهر)',A.filter(c=>c.created.slice(0,7)==mk).length)}${kpi('العملاء الجادون',n('عميل جاد'))}${kpi('العملاء المؤهلون',n('عميل مؤهل'))}${kpi('عروض الأسعار المرسلة',A.filter(c=>c.status=='تم إرسال عرض سعر'||c.journey.some(j=>j.to=='تم إرسال عرض سعر')).length)}${kpi('بانتظار الرد',n('بانتظار رد العميل'))}${kpi('مطلوب متابعتهم',td.length+lt.length)}${kpi('الحجوزات',A.filter(c=>c.status=='تم الحجز'||c.journey.some(j=>j.to=='تم الحجز')).length)}${kpi('المبيعات',n('تم البيع'))}${kpi('غير مهتمين',n('غير مهتم'))}${kpi('لم يتم الرد',n('لم يتم الرد'))}${kpi('مغلق / غير مؤهل',n('مغلق / غير مؤهل'))}</div>
+<div class="card" style="border-color:var(--gd)"><h3>المبيعات – المستهدف الشهري: ${SAR(tg)}</h3><div class="grid"><div class="card kpi"><b>${SAR(sum)}</b><span>إجمالي المبيعات المحققة</span></div><div class="card kpi"><b>${pc2}%</b><span>نسبة تحقيق المستهدف</span></div><div class="card kpi"><b>${SAR(Math.max(0,tg-sum))}</b><span>المبلغ المتبقي</span></div></div><div class="bar" style="height:12px;margin-top:8px"><i style="width:${Math.min(100,pc2)}%;background:var(--gd)"></i></div></div>
+<div class="card"><h3>📞 متابعات اليوم (${td.length})</h3>${ftbl(td)}</div><div class="card" style="border-color:var(--rd)"><h3>⏰ المتابعات المتأخرة (${lt.length})</h3>${ftbl(lt)}</div><div class="card"><h3>📅 المتابعات القادمة (${up.length})</h3>${ftbl(up)}</div>`};
+VW.cl=()=>{const A0=CLS(),q=CF.q.trim(),qd=q.replace(/\D/g,''),A=A0.filter(c=>(!q||(qd&&c.phone.includes(qd))||c.name.includes(q))&&(!CF.status||c.status==CF.status)&&(!CF.city||c.city==CF.city)&&(!CF.service||c.service==CF.service)&&(!CF.source||c.source==CF.source));
+const ds=k=>[...new Set(A0.map(c=>c[k]).filter(Boolean))],sf=(k,ph,arr)=>`<select onchange="CF.${k}=this.value;render()">${op(arr,CF[k],ph)}</select>`;
+return`<div class="fl"><h3 style="margin:0">عملائي</h3>${sellerSel()}${newBtn()}</div><div class="fl"><input placeholder="بحث بالجوال أو الاسم..." value="${esc(CF.q)}" onchange="CF.q=this.value;render()">${sf('status','كل الحالات',CST)}${sf('city','كل المدن',ds('city'))}${sf('service','كل الخدمات',ds('service'))}${sf('source','كل المصادر',ds('source'))}<button class="btn sm" onclick="CF={q:'',status:'',city:'',service:'',source:''};render()">مسح</button></div>
+<div class="card">${A.length?`<div class="w"><table><tr><th>العميل</th><th>الجوال</th><th>المدينة</th><th>السيارة</th><th>الخدمة</th><th>الحالة</th><th>قيمة البيع</th><th>آخر متابعة</th><th>المتابعة القادمة</th><th></th></tr>${A.map(c=>`<tr><td>${esc(c.name)}</td><td dir="ltr">${esc(c.phone)}</td><td>${esc(c.city)}</td><td>${esc((c.carType+' '+c.carModel).trim())}</td><td>${esc(c.service)}</td><td><span class="tag">${c.status}</span></td><td>${c.status=='تم البيع'?SAR(c.sale):'—'}</td><td>${c.lastFollow||'—'}</td><td>${c.nextFollow?c.nextFollow+' '+(c.nextTime||''):'—'}${c.nextFollow&&c.nextFollow<today&&!CLOSED.includes(c.status)?' ⏰':''}</td><td><button class="btn sm" onclick="openClient('${c.id}')">فتح</button></td></tr>`).join('')}</table></div>`:'<div class="mu">لا يوجد عملاء مطابقون</div>'}<div class="mu">${A.length} من ${A0.length}</div></div>`};
+const _tf=tabsFor;tabsFor=function(){const t=[..._tf()];if(!S.emps.some(e=>e.crm))return t;const i=t.findIndex(x=>x[0]=='br');t.splice(i<0?1:i+1,0,['sd','لوحة البائع'],['cl','عملائي']);return t};
+const _al=alerts;alerts=function(){const A=_al();(S.clients||[]).filter(c=>c.nextFollow&&!CLOSED.includes(c.status)&&c.nextFollow<=today).slice(0,5).forEach(c=>A.push([c.nextFollow<today?'':'y',(c.nextFollow<today?'📞 متابعة عميل متأخرة: ':'📞 متابعة عميل اليوم: ')+c.name+' ('+nm(c.emp)+')']));return A};
+async function migCRM(){if(FULL.migCRM)return;FULL.migCRM=1;FULL.clients=FULL.clients||[];
+let e=FULL.emps.find(x=>x.name=='M Shazly');if(!e){e={id:'e10',name:'M Shazly',role:R[3],start:addD(today,-30),crm:true};FULL.emps.push(e)}else e.crm=true;
+if(FULL.demo&&!FULL.clients.some(c=>c.emp==e.id)){const P=['عميل جاد','عميل مؤهل','تم إرسال عرض سعر','بانتظار رد العميل','متابعة','تم الحجز','تم البيع'];
+const D=[['أحمد العتيبي','الدمام','تويوتا','كامري 2022','تلميع','Snapchat',2500,5,0],['فهد الدوسري','الخبر','لكزس','ES 2021','حماية سيراميك','Instagram',4500,4,-2],['سلمان القحطاني','الرياض','هيونداي','سوناتا 2020','صيانة دورية','Google',1800,6,0],['ماجد الشمري','جدة','نيسان','باترول 2023','تظليل','TikTok',3200,7,0],['خالد الغامدي','الدمام','كيا','سبورتاج','فحص شامل','توصية عميل',900,'لم يتم الرد',0],['عبدالله الحربي','الخبر','فورد','إكسبلورر 2019','غسيل تفصيلي','واتساب',600,'غير مهتم',0],['يوسف الزهراني','الرياض','شيفروليه','تاهو 2022','تلميع','Snapchat',5200,7,0],['سعد المطيري','الدمام','مرسيدس','C200 2020','حماية سيراميك','Instagram',8000,4,0],['بدر العنزي','الخبر','جيلي','كولراي','صيانة دورية','Google',0,1,0],['تركي السبيعي','جدة','تويوتا','لاند كروزر 2021','تلميع','واتساب',3000,5,1],['ناصر الدوسري','الدمام','هوندا','أكورد 2018','فحص شامل','زيارة فرع',0,'مغلق / غير مؤهل',0],['ريان الشهراني','الخبر','BMW','320 2022','تظليل','Snapchat',2800,5,3]];
+D.forEach((r,i)=>{const [name,city,carType,carModel,service,source,quote,len,fo]=r;const path=typeof len=='number'?P.slice(0,len):['عميل جاد',len];const st=path[path.length-1],sold=st=='تم البيع';
+const journey=path.map((to,k)=>({t:new Date(Date.now()-(path.length-k)*72e5).toISOString(),from:k?path[k-1]:'',to,note:k?'':'تسجيل العميل',by:e.name}));
+const fol=st=='متابعة';FULL.clients.push({id:'cd'+i,phone:'055000'+String(1001+i),emp:e.id,name,city,carType,carModel,service,source,quote,notes:'',status:st,created:addD(today,-(i%5)),lastFollow:today,nextFollow:fol||st=='بانتظار رد العميل'?addD(today,fo):'',nextTime:fol||st=='بانتظار رد العميل'?'11:00':'',nextNote:fol?'الاتصال لتأكيد القرار':'',sale:sold?quote:0,saleDate:sold?today:'',journey})})}
+if(!FULL.users.some(u=>u.username=='mshazly')){const salt=Math.random().toString(36).slice(2);FULL.users.push({id:'umshazly',name:'M Shazly',username:'mshazly',role:'employee',empId:e.id,canEdit:false,perms:{notes:true,rate:true,addTask:true},active:true,salt,hash:await H('Shazly123!',salt),last:'',def:true})}
+save()}
+
+/* ===== Supabase: المصادقة + قاعدة البيانات المشتركة ===== */
+const MT=['quality','mgrNote','action','follow','fstatus'];
+let SB=null,DB=null,MYID=null,MYEMAIL='',ROLE='',ISOWN=false,ISADM=false,STATE='load',READY=false,BOOT=0,RBT=0,FAILT=0,CHAIN=Promise.resolve(),UM={},PROFS=[],PROFS_LOADED=false;
+const CACHE=new Map(),UNSUB=new Map(),DEF=new Set();
+const cj=o=>JSON.stringify(o,(k,v)=>v&&typeof v=='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);
+const cl=o=>JSON.parse(JSON.stringify(o));
+const keyOf=id=>{const e=(FULL.emps||[]).find(x=>x.id==id);return e?(e.uid||e.id):id};
+async function H(){return''}
+/* --- تنظيف البيانات القادمة من حسابات الموظفين (منع حقن HTML/JS) --- */
+const ID_RE=/^[A-Za-z0-9_.:~@+-]{1,80}$/,DR=/^\d{4}-\d{2}-\d{2}$/,TR=/^\d{2}:\d{2}$/,TSR=/^[0-9TZ:.+-]{0,40}$/;
+const sd=v=>DR.test(v)?v:'',stt=v=>TR.test(v)?v:'',num=v=>Number.isFinite(+v)?+v:0,en=(v,a,d)=>a.includes(v)?v:d,cln=s=>String(s??'').replace(/[<>&"'`]/g,''),clp=(v,a,b)=>Math.max(a,Math.min(b,num(v)));
+function sanTask(t){if(!ID_RE.test(t.id)||!ID_RE.test(t.emp))return null;['date','due','follow'].forEach(k=>t[k]=sd(t[k]));t.t1=stt(t.t1);t.t2=stt(t.t2);t.status=en(t.status,TS,'لم تبدأ');t.pri=en(t.pri,PRI,'متوسطة');t.reason=en(t.reason,REA,'');t.branch=en(t.branch,BR,'');t.types=(Array.isArray(t.types)?t.types:[]).filter(x=>TY.includes(x));t.pct=clp(t.pct,0,100);t.quality=clp(t.quality,0,5);t.fstatus=en(t.fstatus,['لا يوجد','مطلوبة','تمت'],'لا يوجد');if(!t.date)t.date=today;return t}
+function sanNote(n){if(!ID_RE.test(n.id)||!ID_RE.test(n.emp))return null;n.date=sd(n.date)||today;n.follow=sd(n.follow);n.type=en(n.type,NT,'أخرى');n.imp=en(n.imp,PRI,'متوسطة');n.status=en(n.status,NS,'مفتوحة');if(n.by&&!ID_RE.test(n.by))n.by='';return n}
+function sanClient(c){if(!ID_RE.test(c.id)||!ID_RE.test(c.emp))return null;c.phone=String(c.phone||'').replace(/\D/g,'');['created','lastFollow','nextFollow','saleDate'].forEach(k=>c[k]=sd(c[k]));c.created=c.created||today;c.nextTime=stt(c.nextTime);c.status=en(c.status,CST,CST[0]);c.sale=num(c.sale);c.quote=num(c.quote);
+c.journey=(Array.isArray(c.journey)?c.journey:[]).map(j=>({t:TSR.test(j.t)?j.t:'',from:en(j.from,CST,''),to:en(j.to,CST,CST[0]),note:String(j.note??''),by:cln(j.by),kind:j.kind=='note'?'note':undefined}));return c}
+function sanLog(l){if(!ID_RE.test(l.id)||!TSR.test(l.t))return null;l.by=cln(l.by);l.k=cln(l.k);return l}
+function sanDay(d){if(!ID_RE.test(d.emp)||!DR.test(d.date))return null;const r=d.rat?{time:clp(d.rat.time,1,5),proc:clp(d.rat.proc,1,5),init:clp(d.rat.init,1,5)}:null,kp={};if(d.kp)Object.keys(d.kp).forEach(k=>{const v=d.kp[k];kp[cln(k)]=(v===''||v==null)?'':num(v)});return{date:d.date,emp:d.emp,rat:r,kp:d.kp?kp:null}}
+/* --- مزامنة: تحويل البيانات إلى مستندات ومقارنتها --- */
+function snapAll(){const m=new Map(),ad=ISOWN,pre='emp/'+MYID+'/';const put=(p,o)=>{if(ad||p.startsWith(pre))m.set(p,o)};
+if(ad){FULL.emps.forEach(e=>m.set('a/s/emps/'+e.id,e));FULL.users.forEach(u=>m.set('a/s/links/'+u.id,u));m.set('a/s/meta/main',{demo:FULL.demo?1:0,v:1});
+FULL.users.forEach(u=>{const e=FULL.emps.find(x=>x.id==u.empId);if(u.role=='employee'&&e&&e.uid==u.id)m.set('mgr/'+u.id+'/items/p:profile',{emp:e,link:u})})}
+FULL.tasks.forEach(t=>{const k=keyOf(t.emp),a={},b={id:t.id};Object.keys(t).forEach(x=>{if(MT.includes(x))b[x]=t[x];else a[x]=t[x]});put('emp/'+k+'/items/t:'+t.id,a);if(ad)m.set('mgr/'+k+'/items/tm:'+t.id,b)});
+FULL.notes.forEach(n=>{const k=keyOf(n.emp);if(n.by)put('emp/'+k+'/items/n:'+n.id,n);else if(ad)m.set('mgr/'+k+'/items/n:'+n.id,n)});
+(FULL.clients||[]).forEach(c=>put('emp/'+keyOf(c.emp)+'/items/c:'+c.id,c));
+const day={};Object.keys(FULL.rat).forEach(x=>{const[d,e]=x.split('|');(day[x]=day[x]||{date:d,emp:e}).rat=FULL.rat[x]});Object.keys(FULL.kp).forEach(x=>{const[d,e]=x.split('|');(day[x]=day[x]||{date:d,emp:e}).kp=FULL.kp[x]});
+Object.keys(day).forEach(x=>put('emp/'+keyOf(day[x].emp)+'/items/d:'+x.replace('|','~'),day[x]));
+FULL.log.filter(l=>l.id&&l.k==(ad?'a':MYID)).forEach(l=>{if(ad)m.set('a/s/alog/'+l.id,l);else put(pre+'items/l:'+l.id,l)});return m}
+const delDom=p=>/^emp\/[^/]+\/items\/(t|n|c|d):/.test(p)||/^mgr\/[^/]+\/items\/(tm|n|p):/.test(p)||/^a\/s\/(emps|links)\//.test(p);
+const writable=p=>ISOWN||p.startsWith('emp/'+MYID+'/items/');
+function fail(e){if(Date.now()-FAILT>3000){FAILT=Date.now();toast('تعذر حفظ بعض التغييرات (صلاحيات أو اتصال)')}rebuildSoon()}
+function flush(){if(!DB||!READY||(ISADM&&!ISOWN))return;const m=snapAll(),ops=[];
+for(const[p,o]of m){const c=CACHE.get(p);if(!c||cj(c)!=cj(o))ops.push([p,o])}
+for(const p of CACHE.keys()){if(!m.has(p)&&delDom(p)&&writable(p))ops.push([p,null])}
+if(!ops.length)return;const prev=ops.map(([p])=>CACHE.get(p));
+ops.forEach(([p,o])=>{if(o)CACHE.set(p,cl(o));else CACHE.delete(p)});
+for(let i=0;i<ops.length;i+=8){const ch=ops.slice(i,i+8);CHAIN=CHAIN.then(()=>Promise.all(ch.map(([p,o],j)=>(o?DB.doc(p).set(cl(o)):DB.doc(p).delete()).catch(e=>{const pv=prev[i+j];if(pv)CACHE.set(p,pv);else CACHE.delete(p);fail(e)}))))}}
+function save(){flush()}
+function log(txt){if(!FULL.log)FULL.log=[];FULL.log.unshift({id:'l'+Date.now()+Math.random().toString(36).slice(2,5),t:new Date().toISOString(),by:cln(ME?ME.name:'النظام'),k:ISOWN?'a':(MYID||''),txt});FULL.log=FULL.log.slice(0,200)}
+function rebuild(){if(BOOT)return;const F={emps:[],tasks:[],notes:[],rat:{},kp:{},log:[],users:[],clients:[],demo:0},tm={},push=(a,o)=>{if(o)a.push(o)};
+for(const[p,d]of CACHE){const s=p.split('/');
+if(p.startsWith('a/s/emps/'))F.emps.push(cl(d));else if(p.startsWith('a/s/links/'))F.users.push(cl(d));else if(p=='a/s/meta/main')F.demo=d.demo?1:0;else if(p.startsWith('a/s/alog/'))push(F.log,sanLog(cl(d)));
+else if(s[0]=='emp'&&s[2]=='items'){const kd=s[3].split(':')[0];
+if(kd=='t')F.tasks.push(cl(d));else if(kd=='n')push(F.notes,sanNote(cl(d)));else if(kd=='c')push(F.clients,sanClient(cl(d)));else if(kd=='l')push(F.log,sanLog(cl(d)));
+else if(kd=='d'){const x=sanDay(cl(d));if(x){if(x.rat)F.rat[x.date+'|'+x.emp]=x.rat;if(x.kp)F.kp[x.date+'|'+x.emp]=x.kp}}}
+else if(s[0]=='mgr'&&s[2]=='items'){const kd=s[3].split(':')[0];if(kd=='tm')tm[d.id]=d;else if(kd=='n')push(F.notes,sanNote(cl(d)));else if(kd=='p'&&!ISADM){F.emps=[cl(d.emp)];F.users=[cl(d.link)]}}}
+F.tasks=F.tasks.map(t=>sanTask(Object.assign(t,{quality:0,mgrNote:'',action:'',follow:'',fstatus:'لا يوجد'},cl(tm[t.id]||{})))).filter(Boolean);
+F.tasks.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.id.localeCompare(b.id));F.notes.sort((a,b)=>(a.date||'').localeCompare(b.date||'')||a.id.localeCompare(b.id));F.clients.sort((a,b)=>(a.created||'').localeCompare(b.created||'')||a.id.localeCompare(b.id));
+F.log.sort((a,b)=>b.t.localeCompare(a.t));F.log=F.log.slice(0,200);FULL=F;
+const lk=F.users.find(u=>u.id==MYID);if(lk){lk.role=ROLE;if(ROLE=='executive')lk.canEdit=false;ME=lk;STATE=lk.active?'ready':'off'}else{ME=null;if(STATE!='first')STATE=READY?'pending':'load'}
+render()}
+function rebuildSoon(){clearTimeout(RBT);RBT=setTimeout(rebuild,100)}
+function sub(path){if(UNSUB.has(path))return;UNSUB.set(path,DB.collection(path).onSnapshot(s=>apply(path,s),e=>{DEF.add(path);checkReady()}))}
+function ensureSubs(){for(const[p,e]of CACHE){if(p.startsWith('a/s/emps/')){const k=e.uid||e.id;sub('emp/'+k+'/items');sub('mgr/'+k+'/items')}}}
+function apply(base,snap){snap.docChanges().forEach(ch=>{const p=base+'/'+ch.doc.id;if(ch.type=='removed')CACHE.delete(p);else CACHE.set(p,cl(ch.doc.data()))});if(!snap.metadata.fromCache)DEF.add(base);if(ISADM&&(base=='a/s/emps'||base=='a/s/links'))ensureSubs();checkReady();rebuildSoon()}
+function checkReady(){if(READY||BOOT)return;const ok=ISADM?['a/s/emps','a/s/links','a/s/meta'].every(x=>DEF.has(x)):DEF.has('mgr/'+MYID+'/items');if(!ok)return;READY=true;
+if(ISADM){if(!CACHE.has('a/s/meta/main')){if(ISOWN){STATE='first';render();return}}else if(!CACHE.has('a/s/links/'+MYID)&&ISOWN){const l={id:MYID,name:MYEMAIL.split('@')[0]||'المدير',role:'admin',empId:'',canEdit:true,perms:{},active:true};CACHE.set('a/s/links/'+MYID,l);DB.doc('a/s/links/'+MYID).set(l).catch(fail)}}
+rebuildSoon()}
+async function bootstrap(withDemo){BOOT=1;READY=false;STATE='load';render();
+if(withDemo){FULL=demo();FULL.users=[];FULL.clients=[];await mig10();await migBT();await migCRM()}else FULL={emps:[],tasks:[],notes:[],rat:{},kp:{},log:[],users:[],clients:[],demo:0};
+FULL.users=[{id:MYID,name:MYEMAIL.split('@')[0]||'المدير',role:'admin',empId:'',canEdit:true,perms:{},active:true}];FULL.log=[];FULL.migBT=FULL.migCRM=FULL.mig10=1;
+ME=FULL.users[0];STATE='ready';READY=true;BOOT=0;log(withDemo?'تهيئة النظام ببيانات تجريبية':'تهيئة النظام فارغًا');flush();render()}
+/* --- محوّل Supabase بنفس واجهة collection/doc/onSnapshot --- */
+function mkDb(sb){const LS=[];let chan=null;const direct=(b,p)=>p.startsWith(b+'/')&&!p.slice(b.length+1).includes('/'),mk=(p,d)=>({id:p.split('/').pop(),data:()=>d}),snap=ch=>({docChanges:()=>ch,metadata:{fromCache:false},docs:[],size:ch.length,empty:!ch.length});
+const ensure=()=>{if(chan)return;chan=sb.channel('docs-all').on('postgres_changes',{event:'*',schema:'public',table:'docs'},pl=>{const del=pl.eventType=='DELETE',row=del?pl.old:pl.new;if(!row||!row.path)return;LS.forEach(l=>{if(!direct(l.base,row.path))return;let ch;if(del){l.ids.delete(row.path);ch=[{type:'removed',doc:mk(row.path,null)}]}else{ch=[{type:l.ids.has(row.path)?'modified':'added',doc:mk(row.path,row.data)}];l.ids.add(row.path)}l.next(snap(ch))})}).subscribe()};
+return{collection:base=>({onSnapshot(next,err){const l={base,ids:new Set(),next};LS.push(l);ensure();(async()=>{const rows=[];for(let a=0;;a+=1000){const r=await sb.from('docs').select('path,data').like('path',base+'/%').range(a,a+999);if(r.error){err&&err(r.error);return}rows.push(...r.data);if(r.data.length<1000)break}
+const ch=rows.filter(r=>direct(base,r.path)).map(r=>{l.ids.add(r.path);return{type:'added',doc:mk(r.path,r.data)}});next(snap(ch))})();return()=>{const i=LS.indexOf(l);if(i>=0)LS.splice(i,1)}}}),
+doc:p=>({set:async d=>{const r=await sb.from('docs').upsert({path:p,data:d,updated_at:new Date().toISOString()});if(r.error)throw r.error},delete:async()=>{const r=await sb.from('docs').delete().eq('path',p);if(r.error)throw r.error}})}}
+async function boot(){if(window.__b)return;window.__b=1;FULL={emps:[],tasks:[],notes:[],rat:{},kp:{},log:[],users:[],clients:[],demo:0};S=FULL;
+const C=window.APP_CONFIG||{};if(!C.SUPABASE_URL||/PASTE|ضع/.test(C.SUPABASE_URL)||!C.SUPABASE_ANON_KEY||!window.supabase){STATE='cfg';render();return}
+SB=window.supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY);
+const{data}=await SB.auth.getSession();SB.auth.onAuthStateChange(ev=>{if(ev=='SIGNED_OUT'&&MYID)location.reload()});
+if(!data||!data.session){STATE='login';render();return}
+const u=data.session.user;MYID=u.id;MYEMAIL=u.email||'';STATE='load';render();
+const r=await SB.from('app_roles').select('role,active').eq('uid',MYID).maybeSingle();
+if(r.error||!r.data){STATE='noaccess';render();return}
+if(!r.data.active){STATE='off';render();return}
+ROLE=r.data.role;ISOWN=ROLE=='admin';ISADM=ROLE=='admin'||ROLE=='executive';DB=mkDb(SB);
+if(ISADM){['a/s/emps','a/s/links','a/s/meta','a/s/alog'].forEach(sub)}else{sub('mgr/'+MYID+'/items');sub('emp/'+MYID+'/items')}}
+loginHtml=()=>{const c=(t,m,x)=>`<div class="card" style="max-width:480px;margin:30px auto"><h3>${t}</h3><div class="mu">${m}</div>${x||''}</div>`;
+if(STATE=='login')return`<div class="card" style="max-width:380px;margin:30px auto"><h3>تسجيل الدخول</h3><div class="f" style="grid-template-columns:1fr"><label>البريد الإلكتروني<input id="lu" type="email" dir="ltr" autocomplete="username"></label><label>كلمة المرور<input id="lp" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')login()"></label></div><div id="le" class="al" style="display:none;margin-top:10px"></div><button class="btn gd" style="margin-top:10px;width:100%" onclick="login()">تسجيل الدخول</button><div class="mu" style="margin-top:8px">الحسابات يُنشئها مدير النظام.</div></div>`;
+const out='<div class="fl" style="margin-top:12px"><button class="btn" onclick="logout()">تسجيل الخروج</button></div>';
+return STATE=='cfg'?c('الإعداد غير مكتمل','افتح ملف index.html واكتب رابط مشروع Supabase والمفتاح العام في قسم الإعدادات أعلى الملف (انظر ملف التعليمات).'):STATE=='noaccess'?c('حسابك غير مفعّل للنظام','سُجّل دخولك بنجاح لكن لم يمنحك المدير صلاحية بعد. اطلب منه تفعيل حسابك ثم أعد تحميل الصفحة.',out):STATE=='off'?c('الحساب معطّل','تواصل مع مدير النظام.',out):STATE=='pending'?c('حسابك غير مربوط بعد',ISADM?'بانتظار تهيئة النظام أو ربط حسابك من إدارة المستخدمين.':'سيربط المدير حسابك بالموظف المناسب ثم تُحدَّث الصفحة تلقائيًا.',out):STATE=='first'?c('تهيئة النظام لأول مرة','هذه أول مرة يُفتح فيها النظام. اختر طريقة البدء:','<div class="fl" style="margin-top:12px"><button class="btn gd" onclick="bootstrap(false)">البدء فارغًا (للاستخدام الفعلي)</button><button class="btn" onclick="bootstrap(true)">ببيانات تجريبية (للتجربة)</button></div>'):c('جارٍ التحميل...','يتم الاتصال بقاعدة البيانات')};
+async function login(){const e=$('#lu').value.trim(),p=$('#lp').value;const r=await SB.auth.signInWithPassword({email:e,password:p});if(r.error){const x=$('#le');x.style.display='block';x.textContent='بيانات الدخول غير صحيحة';return}location.reload()}
+async function logout(){try{await SB.auth.signOut()}catch(e){}location.reload()}
+function openPw2(){mod(`<h3>تغيير كلمة المرور</h3><div class="f">${fv('npw','كلمة المرور الجديدة (8 أحرف فأكثر)','','password')}</div><div class="fl" style="margin-top:12px"><button class="btn gd" onclick="savePw2()">حفظ</button><button class="btn" onclick="close_()">إلغاء</button></div>`)}
+async function savePw2(){const p=$('#m_npw').value;if(p.length<8)return toast('كلمة المرور قصيرة');const r=await SB.auth.updateUser({password:p});if(r.error)return toast('تعذر التغيير');close_();toast('تم تغيير كلمة المرور')}
+const emailOf=id=>(PROFS.find(p=>p.uid==id)||{}).email||'';
+function loadProfs(){if(!SB||!ISOWN)return;SB.from('app_profiles').select('uid,email').then(r=>{PROFS=r.data||[];PROFS_LOADED=true;render()})}
+VW.users=()=>{if(!PROFS_LOADED){PROFS_LOADED=true;loadProfs()}const free=PROFS.filter(p=>!FULL.users.some(u=>u.id==p.uid));
+return`<div class="fl"><h3 style="margin:0">إدارة المستخدمين</h3><button class="btn" onclick="PROFS_LOADED=false;render()">تحديث القائمة</button></div>
+<div class="demo">لإضافة شخص جديد: أنشئ له حسابًا (بريد + كلمة مرور) من لوحة Supabase ← Authentication ← Users ← Add user، ثم حدّث القائمة هنا واضغط «ربط» بجانب بريده لتحدد دوره وموظفه. المدير التنفيذي (Executive) يقرأ فقط على مستوى الخادم، ولمنحه صلاحية تعديل اجعله Admin.</div>
+<div class="card"><div class="w"><table><tr><th>الاسم</th><th>البريد</th><th>Role</th><th>الموظف</th><th>الحالة</th><th>الإجراءات</th></tr>${FULL.users.map(u=>`<tr><td>${esc(u.name)}</td><td dir="ltr">${esc(emailOf(u.id))}</td><td>${u.role}${u.role=='employee'?[(u.perms||{}).notes?'ملاحظات':'',(u.perms||{}).rate?'تقييم':'',(u.perms||{}).addTask?'مهام':''].filter(Boolean).map(x=>` <span class="tag">${x}</span>`).join(''):''}</td><td>${u.empId?esc(nm(u.empId)):'—'}</td><td>${u.active?'🟢 نشط':'⚪ معطّل'}</td><td><button class="btn sm" onclick="openUser('${u.id}')">تعديل</button> <button class="btn sm" onclick="togU('${u.id}')">${u.active?'تعطيل':'تفعيل'}</button></td></tr>`).join('')}</table></div></div>
+<div class="card"><h3>حسابات أُنشئت ولم تُربط بعد</h3>${free.length?free.map(p=>`<div class="fl"><span dir="ltr">${esc(p.email||p.uid)}</span><button class="btn sm gd" onclick="openUser(null,{id:'${esc(p.uid)}',name:'${esc(String(p.email||'').split('@')[0].replace(/'/g,''))}'})">ربط</button></div>`).join(''):'<div class="mu">لا توجد حسابات جديدة</div>'}</div>`};
+function openUser(id,np){const u=id&&FULL.users.find(x=>x.id==id);UM={id:u?u.id:np.id,active:u?u.active:true};const d=u||{name:np.name||'',role:'employee',empId:'',perms:{notes:true,rate:true,addTask:true}};
+mod(`<h3>${u?'تعديل':'ربط'} مستخدم</h3><div class="mu" dir="ltr">${esc(emailOf(UM.id))}</div><div class="f">${fv('name','الاسم المعروض',d.name)}<label>Role<select id="m_role">${op([['admin','Admin – مدير النظام'],['employee','Employee – موظف'],['executive','Executive – قراءة فقط']],d.role)}</select></label><label>الموظف المرتبط<select id="m_empId">${op(EO(),d.empId,'— بدون —')}</select></label><div class="full" style="border:1px solid var(--bd);border-radius:8px;padding:8px"><b>صلاحيات الموظف</b><br><label><input type="checkbox" id="m_pn" ${(d.perms||{}).notes?'checked':''}> يضيف ملاحظات</label><label><input type="checkbox" id="m_pr" ${(d.perms||{}).rate?'checked':''}> يعبّئ تقييمات ومؤشرات تقريره</label><label><input type="checkbox" id="m_pa" ${(d.perms||{}).addTask?'checked':''}> يضيف مهام لنفسه</label></div></div><div class="fl" style="margin-top:12px"><button class="btn gd" onclick="saveUser()">حفظ</button><button class="btn" onclick="close_()">إلغاء</button></div>`)}
+async function saveUser(){const g=k=>$('#m_'+k).value.trim(),n={id:UM.id,name:g('name'),role:g('role'),empId:g('empId'),canEdit:false,perms:{notes:$('#m_pn').checked,rate:$('#m_pr').checked,addTask:$('#m_pa').checked},active:UM.active};
+if(!n.name)return toast('أدخل الاسم');if(n.id==MYID&&n.role!='admin')return toast('لا يمكنك تغيير دور حسابك');
+if(n.role=='employee'){if(!n.empId)return toast('اربط الحساب بموظف');const e=emp(n.empId);if(!e)return toast('الموظف غير موجود');if(e.uid&&e.uid!=n.id)return toast('هذا الموظف مربوط بحساب آخر')}else n.empId='';
+const r=await SB.from('app_roles').upsert({uid:n.id,role:n.role,active:n.active});if(r.error)return toast('تعذر حفظ الدور على الخادم');
+FULL.emps.forEach(e=>{if(e.uid==n.id&&e.id!=n.empId)delete e.uid});if(n.empId)emp(n.empId).uid=n.id;
+const i=FULL.users.findIndex(x=>x.id==n.id);if(i>=0)FULL.users[i]=n;else FULL.users.push(n);log('ربط/تعديل مستخدم: '+n.name);fin()}
+async function togU(id){const u=FULL.users.find(x=>x.id==id);if(!u)return;if(u.id==MYID)return toast('لا يمكن تعطيل حسابك');const a=!u.active,r=await SB.from('app_roles').update({active:a}).eq('uid',id);if(r.error)return toast('تعذر التغيير على الخادم');u.active=a;log((a?'فعّل ':'عطّل ')+'المستخدم '+u.name);save();render()}
+
+boot();
+
+</script></body></html>
