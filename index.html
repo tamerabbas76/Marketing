@@ -366,7 +366,7 @@ save()}
 
 /* ===== Supabase: المصادقة + قاعدة البيانات المشتركة ===== */
 const MT=['quality','mgrNote','action','follow','fstatus'];
-let SB=null,DB=null,MYID=null,MYEMAIL='',ROLE='',ISOWN=false,ISADM=false,STATE='load',READY=false,BOOT=0,RBT=0,FAILT=0,CHAIN=Promise.resolve(),UM={},PROFS=[],PROFS_LOADED=false;
+let SB=null,DB=null,MYID=null,MYEMAIL='',ROLE='',ISOWN=false,ISADM=false,STATE='load',READY=false,BOOT=0,RBT=0,FAILT=0,CHAIN=Promise.resolve(),UM={},PROFS=[],PROFS_LOADED=false,HASADMIN=true,LASTERR='';
 const CACHE=new Map(),UNSUB=new Map(),DEF=new Set();
 const cj=o=>JSON.stringify(o,(k,v)=>v&&typeof v=='object'&&!Array.isArray(v)?Object.keys(v).sort().reduce((a,x)=>(a[x]=v[x],a),{}):v);
 const cl=o=>JSON.parse(JSON.stringify(o));
@@ -393,7 +393,7 @@ Object.keys(day).forEach(x=>put('emp/'+keyOf(day[x].emp)+'/items/d:'+x.replace('
 FULL.log.filter(l=>l.id&&l.k==(ad?'a':MYID)).forEach(l=>{if(ad)m.set('a/s/alog/'+l.id,l);else put(pre+'items/l:'+l.id,l)});return m}
 const delDom=p=>/^emp\/[^/]+\/items\/(t|n|c|d):/.test(p)||/^mgr\/[^/]+\/items\/(tm|n|p):/.test(p)||/^a\/s\/(emps|links)\//.test(p);
 const writable=p=>ISOWN||p.startsWith('emp/'+MYID+'/items/');
-function fail(e){if(Date.now()-FAILT>3000){FAILT=Date.now();toast('تعذر حفظ بعض التغييرات (صلاحيات أو اتصال)')}rebuildSoon()}
+function fail(e){LASTERR=String((e&&(e.message||e.code))||e).slice(0,160);if(Date.now()-FAILT>3000){FAILT=Date.now();toast('تعذر الحفظ: '+LASTERR.slice(0,70))}rebuildSoon()}
 function flush(){if(!DB||!READY||(ISADM&&!ISOWN))return;const m=snapAll(),ops=[];
 for(const[p,o]of m){const c=CACHE.get(p);if(!c||cj(c)!=cj(o))ops.push([p,o])}
 for(const p of CACHE.keys()){if(!m.has(p)&&delDom(p)&&writable(p))ops.push([p,null])}
@@ -415,13 +415,14 @@ F.log.sort((a,b)=>b.t.localeCompare(a.t));F.log=F.log.slice(0,200);FULL=F;
 const lk=F.users.find(u=>u.id==MYID);if(lk){lk.role=ROLE;if(ROLE=='executive')lk.canEdit=false;ME=lk;STATE=lk.active?'ready':'off'}else{ME=null;if(STATE!='first')STATE=READY?'pending':'load'}
 render()}
 function rebuildSoon(){clearTimeout(RBT);RBT=setTimeout(rebuild,100)}
-function sub(path){if(UNSUB.has(path))return;UNSUB.set(path,DB.collection(path).onSnapshot(s=>apply(path,s),e=>{DEF.add(path);checkReady()}))}
+function sub(path){if(UNSUB.has(path))return;UNSUB.set(path,DB.collection(path).onSnapshot(s=>apply(path,s),e=>{LASTERR='قراءة '+path+': '+String((e&&(e.message||e.code))||e).slice(0,140);DEF.add(path);checkReady()}))}
 function ensureSubs(){for(const[p,e]of CACHE){if(p.startsWith('a/s/emps/')){const k=e.uid||e.id;sub('emp/'+k+'/items');sub('mgr/'+k+'/items')}}}
 function apply(base,snap){snap.docChanges().forEach(ch=>{const p=base+'/'+ch.doc.id;if(ch.type=='removed')CACHE.delete(p);else CACHE.set(p,cl(ch.doc.data()))});if(!snap.metadata.fromCache)DEF.add(base);if(ISADM&&(base=='a/s/emps'||base=='a/s/links'))ensureSubs();checkReady();rebuildSoon()}
 function checkReady(){if(READY||BOOT)return;const ok=ISADM?['a/s/emps','a/s/links','a/s/meta'].every(x=>DEF.has(x)):DEF.has('mgr/'+MYID+'/items');if(!ok)return;READY=true;
 if(ISADM){if(!CACHE.has('a/s/meta/main')){if(ISOWN){STATE='first';render();return}}else if(!CACHE.has('a/s/links/'+MYID)&&ISOWN){const l={id:MYID,name:MYEMAIL.split('@')[0]||'المدير',role:'admin',empId:'',canEdit:true,perms:{},active:true};CACHE.set('a/s/links/'+MYID,l);DB.doc('a/s/links/'+MYID).set(l).catch(fail)}}
 rebuildSoon()}
-async function bootstrap(withDemo){BOOT=1;READY=false;STATE='load';render();
+async function bootstrap(withDemo){try{await bootstrap0(withDemo)}catch(e){BOOT=0;LASTERR='تهيئة: '+String((e&&e.message)||e).slice(0,140);STATE='pending';render()}}
+async function bootstrap0(withDemo){BOOT=1;READY=false;STATE='load';render();
 if(withDemo){FULL=demo();FULL.users=[];FULL.clients=[];await mig10();await migBT();await migCRM()}else FULL={emps:[],tasks:[],notes:[],rat:{},kp:{},log:[],users:[],clients:[],demo:0};
 FULL.users=[{id:MYID,name:MYEMAIL.split('@')[0]||'المدير',role:'admin',empId:'',canEdit:true,perms:{},active:true}];FULL.log=[];FULL.migBT=FULL.migCRM=FULL.mig10=1;
 ME=FULL.users[0];STATE='ready';READY=true;BOOT=0;log(withDemo?'تهيئة النظام ببيانات تجريبية':'تهيئة النظام فارغًا');flush();render()}
@@ -438,14 +439,14 @@ const{data}=await SB.auth.getSession();SB.auth.onAuthStateChange(ev=>{if(ev=='SI
 if(!data||!data.session){STATE='login';render();return}
 const u=data.session.user;MYID=u.id;MYEMAIL=u.email||'';STATE='load';render();
 const r=await SB.from('app_roles').select('role,active').eq('uid',MYID).maybeSingle();
-if(r.error||!r.data){STATE='noaccess';render();return}
+if(r.error||!r.data){const h=await SB.rpc('has_admin');HASADMIN=(h&&!h.error)?!!h.data:true;STATE='noaccess';render();return}
 if(!r.data.active){STATE='off';render();return}
 ROLE=r.data.role;ISOWN=ROLE=='admin';ISADM=ROLE=='admin'||ROLE=='executive';DB=mkDb(SB);
 if(ISADM){['a/s/emps','a/s/links','a/s/meta','a/s/alog'].forEach(sub)}else{sub('mgr/'+MYID+'/items');sub('emp/'+MYID+'/items')}}
 loginHtml=()=>{const c=(t,m,x)=>`<div class="card" style="max-width:480px;margin:30px auto"><h3>${t}</h3><div class="mu">${m}</div>${x||''}</div>`;
 if(STATE=='login')return`<div class="card" style="max-width:380px;margin:30px auto"><h3>تسجيل الدخول</h3><div class="f" style="grid-template-columns:1fr"><label>البريد الإلكتروني<input id="lu" type="email" dir="ltr" autocomplete="username"></label><label>كلمة المرور<input id="lp" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')login()"></label></div><div id="le" class="al" style="display:none;margin-top:10px"></div><button class="btn gd" style="margin-top:10px;width:100%" onclick="login()">تسجيل الدخول</button><div class="mu" style="margin-top:8px">الحسابات يُنشئها مدير النظام.</div></div>`;
 const out='<div class="fl" style="margin-top:12px"><button class="btn" onclick="logout()">تسجيل الخروج</button></div>';
-return STATE=='cfg'?c('الإعداد غير مكتمل','افتح ملف index.html واكتب رابط مشروع Supabase والمفتاح العام في قسم الإعدادات أعلى الملف (انظر ملف التعليمات).'):STATE=='noaccess'?c('حسابك غير مفعّل للنظام','سُجّل دخولك بنجاح لكن لم يمنحك المدير صلاحية بعد. اطلب منه تفعيل حسابك ثم أعد تحميل الصفحة.',out):STATE=='off'?c('الحساب معطّل','تواصل مع مدير النظام.',out):STATE=='pending'?c('حسابك غير مربوط بعد',ISADM?'بانتظار تهيئة النظام أو ربط حسابك من إدارة المستخدمين.':'سيربط المدير حسابك بالموظف المناسب ثم تُحدَّث الصفحة تلقائيًا.',out):STATE=='first'?c('تهيئة النظام لأول مرة','هذه أول مرة يُفتح فيها النظام. اختر طريقة البدء:','<div class="fl" style="margin-top:12px"><button class="btn gd" onclick="bootstrap(false)">البدء فارغًا (للاستخدام الفعلي)</button><button class="btn" onclick="bootstrap(true)">ببيانات تجريبية (للتجربة)</button></div>'):c('جارٍ التحميل...','يتم الاتصال بقاعدة البيانات')};
+return STATE=='cfg'?c('الإعداد غير مكتمل','افتح ملف index.html واكتب رابط مشروع Supabase والمفتاح العام في قسم الإعدادات أعلى الملف (انظر ملف التعليمات).'):STATE=='noaccess'?c('حسابك غير مفعّل للنظام','سُجّل دخولك بنجاح لكن لم يمنحك المدير صلاحية بعد. اطلب منه تفعيل حسابك ثم أعد تحميل الصفحة.',out):STATE=='off'?c('الحساب معطّل','تواصل مع مدير النظام.',out):STATE=='pending'?c('حسابك غير مربوط بعد',ISADM?'بانتظار تهيئة النظام أو ربط حسابك من إدارة المستخدمين.<div dir="ltr" style="margin-top:8px;font-size:12px">[role='+ROLE+' | meta='+CACHE.has('a/s/meta/main')+' | link='+CACHE.has('a/s/links/'+MYID)+' | docs='+CACHE.size+(LASTERR?' | error: '+esc(LASTERR):'')+']</div><div class="fl" style="margin-top:8px"><button class="btn" onclick="location.reload()">إعادة المحاولة</button></div>':'سيربط المدير حسابك بالموظف المناسب ثم تُحدَّث الصفحة تلقائيًا.',out):STATE=='first'?c('تهيئة النظام لأول مرة','هذه أول مرة يُفتح فيها النظام. اختر طريقة البدء:','<div class="fl" style="margin-top:12px"><button class="btn gd" onclick="bootstrap(false)">البدء فارغًا (للاستخدام الفعلي)</button><button class="btn" onclick="bootstrap(true)">ببيانات تجريبية (للتجربة)</button></div>'):c('جارٍ التحميل...','يتم الاتصال بقاعدة البيانات')};
 async function login(){const e=$('#lu').value.trim(),p=$('#lp').value;const r=await SB.auth.signInWithPassword({email:e,password:p});if(r.error){const x=$('#le');x.style.display='block';x.textContent='بيانات الدخول غير صحيحة';return}location.reload()}
 async function logout(){try{await SB.auth.signOut()}catch(e){}location.reload()}
 function openPw2(){mod(`<h3>تغيير كلمة المرور</h3><div class="f">${fv('npw','كلمة المرور الجديدة (8 أحرف فأكثر)','','password')}</div><div class="fl" style="margin-top:12px"><button class="btn gd" onclick="savePw2()">حفظ</button><button class="btn" onclick="close_()">إلغاء</button></div>`)}
@@ -454,7 +455,7 @@ const emailOf=id=>(PROFS.find(p=>p.uid==id)||{}).email||'';
 function loadProfs(){if(!SB||!ISOWN)return;SB.from('app_profiles').select('uid,email').then(r=>{PROFS=r.data||[];PROFS_LOADED=true;render()})}
 VW.users=()=>{if(!PROFS_LOADED){PROFS_LOADED=true;loadProfs()}const free=PROFS.filter(p=>!FULL.users.some(u=>u.id==p.uid));
 return`<div class="fl"><h3 style="margin:0">إدارة المستخدمين</h3><button class="btn" onclick="PROFS_LOADED=false;render()">تحديث القائمة</button></div>
-<div class="demo">لإضافة شخص جديد: أنشئ له حسابًا (بريد + كلمة مرور) من لوحة Supabase ← Authentication ← Users ← Add user، ثم حدّث القائمة هنا واضغط «ربط» بجانب بريده لتحدد دوره وموظفه. المدير التنفيذي (Executive) يقرأ فقط على مستوى الخادم، ولمنحه صلاحية تعديل اجعله Admin.</div>
+<div class="demo">لإضافة شخص: اطلب منه فتح رابط النظام والضغط على «إنشاء حساب جديد» وتسجيل بريده وكلمة مروره، ثم اضغط «تحديث القائمة» هنا فيظهر بريده في الأسفل، واضغط «ربط» لتحدد دوره وموظفه. قبل الربط لا يرى أي بيانات. المدير التنفيذي (Executive) يقرأ فقط على مستوى الخادم، ولمنحه صلاحية تعديل اجعله Admin.</div>
 <div class="card"><div class="w"><table><tr><th>الاسم</th><th>البريد</th><th>Role</th><th>الموظف</th><th>الحالة</th><th>الإجراءات</th></tr>${FULL.users.map(u=>`<tr><td>${esc(u.name)}</td><td dir="ltr">${esc(emailOf(u.id))}</td><td>${u.role}${u.role=='employee'?[(u.perms||{}).notes?'ملاحظات':'',(u.perms||{}).rate?'تقييم':'',(u.perms||{}).addTask?'مهام':''].filter(Boolean).map(x=>` <span class="tag">${x}</span>`).join(''):''}</td><td>${u.empId?esc(nm(u.empId)):'—'}</td><td>${u.active?'🟢 نشط':'⚪ معطّل'}</td><td><button class="btn sm" onclick="openUser('${u.id}')">تعديل</button> <button class="btn sm" onclick="togU('${u.id}')">${u.active?'تعطيل':'تفعيل'}</button></td></tr>`).join('')}</table></div></div>
 <div class="card"><h3>حسابات أُنشئت ولم تُربط بعد</h3>${free.length?free.map(p=>`<div class="fl"><span dir="ltr">${esc(p.email||p.uid)}</span><button class="btn sm gd" onclick="openUser(null,{id:'${esc(p.uid)}',name:'${esc(String(p.email||'').split('@')[0].replace(/'/g,''))}'})">ربط</button></div>`).join(''):'<div class="mu">لا توجد حسابات جديدة</div>'}</div>`};
 function openUser(id,np){const u=id&&FULL.users.find(x=>x.id==id);UM={id:u?u.id:np.id,active:u?u.active:true};const d=u||{name:np.name||'',role:'employee',empId:'',perms:{notes:true,rate:true,addTask:true}};
@@ -466,6 +467,19 @@ const r=await SB.from('app_roles').upsert({uid:n.id,role:n.role,active:n.active}
 FULL.emps.forEach(e=>{if(e.uid==n.id&&e.id!=n.empId)delete e.uid});if(n.empId)emp(n.empId).uid=n.id;
 const i=FULL.users.findIndex(x=>x.id==n.id);if(i>=0)FULL.users[i]=n;else FULL.users.push(n);log('ربط/تعديل مستخدم: '+n.name);fin()}
 async function togU(id){const u=FULL.users.find(x=>x.id==id);if(!u)return;if(u.id==MYID)return toast('لا يمكن تعطيل حسابك');const a=!u.active,r=await SB.from('app_roles').update({active:a}).eq('uid',id);if(r.error)return toast('تعذر التغيير على الخادم');u.active=a;log((a?'فعّل ':'عطّل ')+'المستخدم '+u.name);save();render()}
+
+
+/* ===== تسجيل ذاتي + اعتماد المدير (بدون SQL لكل مستخدم) ===== */
+const _lh=loginHtml;
+const signupHtml=()=>`<div class="card" style="max-width:380px;margin:30px auto"><h3>إنشاء حساب جديد</h3><div class="f" style="grid-template-columns:1fr"><label>البريد الإلكتروني<input id="su_e" type="email" dir="ltr" autocomplete="username"></label><label>كلمة المرور (8 أحرف فأكثر)<input id="su_p" type="password" autocomplete="new-password"></label><label>تأكيد كلمة المرور<input id="su_p2" type="password" autocomplete="new-password" onkeydown="if(event.key=='Enter')signup()"></label></div><div id="su_m" class="al y" style="display:none;margin-top:10px"></div><button class="btn gd" style="margin-top:10px;width:100%" onclick="signup()">إنشاء الحساب</button><button class="btn" style="margin-top:8px;width:100%" onclick="STATE='login';render()">رجوع لتسجيل الدخول</button><div class="mu" style="margin-top:8px">بعد إنشاء الحساب يفعّله مدير النظام، ولا ترى أي بيانات قبل ذلك.</div></div>`;
+loginHtml=()=>{if(STATE=='signup')return signupHtml();
+if(STATE=='noaccess'){const out='<button class="btn" onclick="logout()">تسجيل الخروج</button>';return HASADMIN?`<div class="card" style="max-width:480px;margin:30px auto"><h3>حسابك بانتظار موافقة المدير</h3><div class="mu">تم إنشاء حسابك بنجاح. سيربطه المدير بالموظف المناسب، ثم أعد تحميل الصفحة.</div><div class="fl" style="margin-top:12px">${out}</div></div>`:`<div class="card" style="max-width:480px;margin:30px auto"><h3>لا يوجد مدير للنظام بعد</h3><div class="mu">إذا كنت مالك النظام فاضغط الزر لتصبح المدير الأول. يعمل هذا الزر مرة واحدة فقط، ويختفي بعد وجود مدير.</div><div class="fl" style="margin-top:12px"><button class="btn gd" onclick="claimAdmin()">أنا مدير النظام – فعّل حسابي</button>${out}</div></div>`}
+let h=_lh();if(STATE=='login')h=h.replace('<div class="mu" style="margin-top:8px">الحسابات يُنشئها مدير النظام.</div>','<button class="btn" style="margin-top:8px;width:100%" onclick="STATE=\'signup\';render()">إنشاء حساب جديد</button><div class="mu" style="margin-top:8px">الموظف الجديد ينشئ حسابه ثم ينتظر تفعيل المدير.</div>');return h};
+async function claimAdmin(){const r=await SB.rpc('claim_admin');if(r.error||!r.data)return toast('تعذر التفعيل: يوجد مدير بالفعل أو لم تُشغَّل setup.sql');location.reload()}
+async function signup(){const e=$('#su_e').value.trim(),p=$('#su_p').value,p2=$('#su_p2').value,x=$('#su_m'),msg=t=>{x.style.display='block';x.textContent=t};
+if(!/^\S+@\S+\.\S+$/.test(e))return msg('اكتب بريدًا صحيحًا');if(p.length<8)return msg('كلمة المرور 8 أحرف على الأقل');if(p!=p2)return msg('كلمتا المرور غير متطابقتين');
+const r=await SB.auth.signUp({email:e,password:p});if(r.error)return msg('تعذر إنشاء الحساب: '+r.error.message);
+if(r.data&&r.data.session){location.reload();return}msg('تم إنشاء الحساب. افتح بريدك واضغط رابط التأكيد ثم سجّل الدخول.')}
 
 boot();
 
